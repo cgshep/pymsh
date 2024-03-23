@@ -1,10 +1,10 @@
 # pymsh
 
 <p>
-   <img alt="PyPI" src="https://img.shields.io/pypi/v/voyager-cpu?color=blue">
-   <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/voyager-cpu">
-   <img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/voyager-cpu">
-   <img alt="PyPI - License" src="https://img.shields.io/pypi/l/voyager-cpu?label=license">
+   <img alt="PyPI" src="https://img.shields.io/pypi/v/pymsh?color=blue">
+   <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/pymsh">
+   <img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/pymsh">
+   <img alt="PyPI - License" src="https://img.shields.io/pypi/l/pymsh?label=license">
 </p>
 
 pymsh is an MIT-licensed implementation of the incremental multi-set hashing (MSH) scheme based on Clarke et al. [1] (ASIACRYPT '03). Specifically, it supports XOR-based hashing for fast updates; BLAKE2B is used as the underlying hash function.
