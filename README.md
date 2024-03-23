@@ -21,7 +21,7 @@ msh = MSH()
 m1 = msh.hash([b'apple', b'apple', b'banana'])
 print(m1.hex()) # => Returns the multiset hash value of m1
 msh.reset()
-m2 = msh.hash([b'apple', b'apple', b'banana'])
+m2 = msh.hash([b'banana', b'apple', b'apple'])
 print(m2.hex()) # => m2 will == m1
 ```
 
