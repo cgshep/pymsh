@@ -6,7 +6,7 @@ class MSH():
         Initialises the multiset hashing (MSH) class.
 
         One can specify one's own hash function with `hash_func`.
-
+        
         Keeps track of a combined hash value for making
         incremental updates later using `update(...)`.
 
@@ -68,24 +68,3 @@ class MSH():
         """
         return self.H(self.__combine
                       (self.__hash_element(new_element))).digest()
-
-
-# Example usage
-msh = MSH()
-print("*** Simple ***")
-m1 = msh.hash([bytes(0), bytes(1)])
-print(m1.hex())
-msh.reset()
-m1 = msh.hash([b'apple', b'apple', b'banana'])
-print(m1.hex())
-msh.reset()
-
-print("*** Update function ***")
-new_lst = [b'apple']
-m3 = msh.hash(new_lst)
-print(m3.hex())
-m3 = msh.update(b'banana')
-print(m3.hex())
-m3 = msh.update(b'apple')
-print(m3.hex())
-
