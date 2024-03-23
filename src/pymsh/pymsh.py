@@ -14,7 +14,8 @@ class MSH():
             hash_func : Hash function to use. Default uses BLAKE2b
         """
         self.H = hash_func
-        self.cumulative_hash = 0  # Initialize combined hash
+        self.combined_hash = 0
+
 
     def reset(self):
         """
@@ -22,6 +23,7 @@ class MSH():
         to be used afresh.
         """
         self.combined_hash = 0
+
 
     def __hash_element(self, e):
         """
@@ -32,6 +34,7 @@ class MSH():
             e : Element to hash
         """
         return self.H(e).digest()
+
 
     def __combine(self, new_hash):
         """
