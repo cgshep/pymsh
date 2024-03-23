@@ -17,7 +17,9 @@ Simple: initialise the `MSH()` class and call `hash(...)` for hashing multisets 
 
 Examples:
 ```python
-msh = MSH()
+from pymsh import pymsh
+
+msh = pymsh.MSH()
 m1 = msh.hash([b'apple', b'apple', b'banana'])
 print(m1.hex()) # => Returns the multiset hash value of m1
 msh.reset()
@@ -27,7 +29,9 @@ print(m2.hex()) # => m2 will == m1
 
 An example of the update function:
 ```python
-msh = MSH()
+from pymsh import pymsh
+
+msh = pymsh.MSH()
 new_lst = [b'apple']
 m3 = msh.hash(new_lst)
 print(m3.hex())
