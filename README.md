@@ -9,7 +9,7 @@
 
 pymsh is an MIT-licensed implementation of the incremental multi-set hashing (MSH) scheme based on Clarke et al. [1] (ASIACRYPT '03).
 
-MSH hashes are invariant under the ordering of elements. In other words, $H( \{ a,b,c \} )$ will produce the same value as $H( \{ c,b,a \} )$. This has some interesting space-efficient applications where we don't require different hash values for different orders.
+MSH hashes are invariant under the ordering of elements. In other words, $H( \{ a,b,c \} )$ will produce the same value as $H( \{ c,b,a \} )$. This has some interesting space-efficient applications where we don't want different hash values to be produced for different orders of elements. 
 
 pymsh currently supports XOR-based hashing. This is the most efficient construction, but it's only set-collision resistant. If the input is *not* a set, then collisions can be produced in a trivial manner, e.g. inputting $(a,a)$ will output $H(0)$. 
 
