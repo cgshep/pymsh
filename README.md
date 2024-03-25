@@ -11,7 +11,7 @@ pymsh is an MIT-licensed implementation of the incremental multi-set hashing (MS
 
 MSH hashes are invariant under the ordering of elements. In other words, $H( \{ a,b,c \} )$ will produce the same value as $H( \{ c,b,a \} )$.
 
-pymsh currently supports XOR-based hashing. This is the most efficient construction, but it's only set-collision resistant. If the input is *not* a set, then collisions can be produced in a trivial manner, e.g. inputting $ \{ a,a \} $ will output $H(0)$. 
+pymsh currently supports XOR-based hashing. This is the most efficient construction, but it's only set-collision resistant. If the input is *not* a set, then collisions can be produced in a trivial manner, e.g. inputting $\{ a,a \}$ will output $H(0)$. 
 
 Ideally, pymsh would implement a comprehensive range of constructions; for example, using addition modulo large integers and finite field arithmetic. This isn't the case today; please feel free to make a pull request.
 
