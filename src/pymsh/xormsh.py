@@ -1,15 +1,30 @@
+import hashlib
+import hmac
+
 from .base import MSH
+from secrets import token_bytes
 
 class XORMSH(MSH):
-    def __init__(self):
+    def __init__(self, key_size=64, nonce_size=16):
         """
         Initialises the XOR-based multiset hashing (MSH) class.
 
         Keeps track of a combined hash value for making
         incremental updates later using `update(...)`.
+
+        The Clarke et al. MSet-XOR-Hash scheme requires a
+        key for an HMAC application of size `key_size`.
         """
         super().__init__()
-        self.combined_hash = 0
+        self.K = token_bytes(key_size)
+        self.nonce = token_bytes(nonce_size)
+
+        # This convolution is needed because byte arrays
+        # in Python are immutable.
+        self.init_hmac = int.from_bytes(
+            hmac.new(self.K, self.nonce, hashlib.blake2b).digest(),
+            byteorder='big')
+        self.combined_hash = self.init_hmac
 
 
     def reset(self):
@@ -17,7 +32,7 @@ class XORMSH(MSH):
         Reset the combined hash value, allowing `update(...)`
         to be used afresh.
         """
-        self.combined_hash = 0
+        self.combined_hash = self.init_hmac
 
 
     def __combine(self, new_hash):
