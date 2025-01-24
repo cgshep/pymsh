@@ -32,14 +32,37 @@ sympy (for prime generation)
 
 ## Basic Usage
 
-Below is a simple usage example for each construction. You can either do one‐shot hashing of a Python dict (representing the multiset), or use incremental updates where supported.
+MSetAddHash is great for general-purpose usage. Let's assume we have a list with some repeated elements, such as `["apple", "apple", "banana", "cherry", "banana", "apple"]`
+
+We can use the helper function `list_to_multiset` to produce a multiset (pymsh expects byte representations of strings):
+```python
+from pymsh import list_to_multiset, Hasher
+
+lst = [b"apple", b"apple", b"banana", b"cherry", b"banana", b"apple"]
+multiset = list_to_multiset(lst)
+```
+This gives us:
+```python
+{b"apple": 3, b"banana": 2, b"cherry": 1}
+```
+We can then use our general `Hasher` class, a synonym for the general-purpose `MSetAddHash` class, as follows:
+```python
+msh = Hasher().hash(multiset)
+```
+
+It's that easy! 
+
+
+## Advanced Usage
+
+You can use other constructions using the below examples. You can either do one‐shot hashing of a Python dict (representing the multiset), or use incremental updates where supported.
 
 ```python
 import secrets
 
 from pymsh import MSetXORHash, MSetAddHash, MSetMuHash, MSetVAddHash
 
-# Example secret key for keyed hashes (XOR & Add variants).
+# Example secret key for keyed hashes (XOR and Add variants).
 key = secrets.token_bytes(32)
 
 # A sample multiset with elements as bytes and integer multiplicities
@@ -59,13 +82,18 @@ print("XOR Hash (one-shot):", xor_hasher.hash(multiset))
 # 2) Additive Hash (multiset-collision resistant, keyed, incremental)
 #
 add_hasher = MSetAddHash(key)
-print("Additive Hash (one-shot):", add_hasher.hash(multiset))
+one_shot = add_hasher.hash(multiset)
+print("Additive Hash (one-shot):", one_shot)
 
 # You can also do incremental updates:
 add_hasher.update(b"apple", 3)
 add_hasher.update(b"banana", 2)
 add_hasher.update(b"cherry", 1)
-print("Additive Hash (incremental):", add_hasher.digest())
+incremental_hash = add_hasher.digest()
+print("Additive Hash (incremental):", incremental_hash)
+
+# Confirm that the one-shot and incremental values are the same
+assert one_shot == incremental_hash
 
 #
 # 3) Multiplicative Hash in GF(q) (multiset-collision resistant, keyless)

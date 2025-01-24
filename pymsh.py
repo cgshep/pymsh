@@ -1,12 +1,22 @@
 """
 A Python implementation of incremental multiset hash functions.
 """
-import os
 import hmac
 import hashlib
 import secrets
 
 from sympy import randprime
+from collections import Counter
+
+
+def list_to_multiset(lst: list) -> dict:
+    """
+    Converts a list of elements to a multiset dict where
+    each key maps to its multiplicity (number of occurrences).
+
+    :param lst: The list to convert.
+    """
+    return dict(Counter(lst))
 
 
 class MSetXORHash:
@@ -18,12 +28,15 @@ class MSetXORHash:
     - r is a random nonce (stored in self.nonce).
     - H_K is realized here via an HMAC with key = K and a single-byte prefix.
     """
-    def __init__(self, key: bytes, m: int = 256, nonce: int = None):
+    def __init__(self, key: bytes = None, m: int = 256, nonce: int = None):
         """
         :param key:  The secret key for HMAC (the 'K' in H_K).
         :param m:    The number of bits for the mod-sum of multiplicities.
                      Also effectively the output size of H_K, truncated if needed.
         """
+        if key is None:
+            key = secrets.token_bytes(32)
+
         self.key = key
         self.m = m
 
@@ -103,16 +116,18 @@ class MSetAddHash:
       - Each .update(elem, mult) modifies that accumulator
       - .digest() returns the final (acc, nonce)
     """
-
-    def __init__(self, key: bytes, m: int = 256):
+    def __init__(self, key: bytes = None, m: int = 256):
         """
         :param key: Secret key for HMAC (the PRF's key).
         :param m:   Bit-length for the modulus (default 256).
         """
+        if key is None:
+            key = secrets.token_bytes(32)
+            
         self.key = key
         self.m = m
         # r in the paper: a random nonce of 16 bytes (128 bits).
-        self.nonce = os.urandom(16)
+        self.nonce = secrets.token_bytes(16)
 
         # Initialize the accumulator with H_K(0, nonce)
         self.acc = self._H(0, self.nonce)
@@ -155,7 +170,7 @@ class MSetAddHash:
 
     def digest(self) -> tuple:
         """
-        Return the final 2-tuple: (acc, nonce).
+        Returns the final 2-tuple: (acc, nonce).
 
         Where 'acc' = H_K(0, nonce) + Σ( multiplicity * H_K(1, elem ) ) mod 2^m
         up to this point, through all .update() calls.
@@ -202,7 +217,6 @@ class MSetMuHash:
       2) If needed, check that q-1 is large enough for your security.
       3) The .hash() method returns an integer in [1..q-1].
     """
-
     def __init__(self, q: int = None, param: int = 2048):
         """
         :param q: A prime (or prime power) used as the field modulus.
@@ -210,7 +224,6 @@ class MSetMuHash:
         """
         self.q = q or randprime(2**param, 2**(param+1))
         
-
     def _H(self, data: bytes) -> int:
         """
         Unkeyed function for the element data:
@@ -226,7 +239,6 @@ class MSetMuHash:
         val = int.from_bytes(raw, 'big')
         # map into 1..q-1
         return (val % (self.q - 1)) + 1
-
 
     def hash(self, multiset: dict[bytes, int]) -> int:
         """
@@ -257,8 +269,7 @@ class MSetVAddHash:
     """
     def __init__(self, n: int = 2**128):
         """
-        :param n: Modulus (an integer), e.g. 2^m for some m. 
-                  Or set n=2^(√m) if following the paper literally with l=√m in vector form.
+        :param n: Modulus (an integer), e.g. 2^m for some m.
         """
         self.n = n
         # We'll store the running sum (Σ M_b * H(b)) mod n
@@ -268,24 +279,18 @@ class MSetVAddHash:
 
     def _H(self, element: bytes) -> int:
         """
-        An unkeyed 'poly-random' map: H: B -> Z_n.
-        You could do a secure hash like SHA256(element),
-        then reduce mod n.  The paper does mention 
-        that H should be 'poly-random' or a cryptographically strong function.
+        An unkeyed map: H: B -> Z_n. You could do a secure hash
+        like SHA256(element), then reduce mod n.  The paper does
+        mention that H should be a cryptographically strong function.
         """
         raw = hashlib.sha256(element).digest()
         val = int.from_bytes(raw, 'big')
         return val % self.n
 
-
     def update(self, element: bytes, multiplicity: int):
         """
-        Incrementally add or remove 'multiplicity' copies of 'element'.
-        So the new accumulator = old_acc + (multiplicity * H(element)) mod n.
+        Incrementally add 'multiplicity' copies of 'element'.
         """
-        if multiplicity < 0:
-            # Allowed if you want to "remove" elements, but be consistent with usage
-            pass
         hval = self._H(element)
         delta = (hval * multiplicity) % self.n
         self.acc = (self.acc + delta) % self.n
@@ -294,14 +299,12 @@ class MSetVAddHash:
         if self.total_count < 0:
             raise ValueError("Total count went negative — too many removes.")
 
-
     def digest(self) -> int:
         """
         Return the integer in [0, n-1], i.e. the sum mod n.
         This matches the exact formula Σ M_b * H(b) mod n.
         """
         return self.acc
-
 
     def hash(self, multiset: dict[bytes,int]) -> int:
         """
@@ -315,3 +318,5 @@ class MSetVAddHash:
             hval = self._H(e)
             tmp = (tmp + (hval * m)) % self.n
         return tmp
+
+Hasher = MSetAddHash
