@@ -11,7 +11,7 @@
 **pymsh** is a Python implementation of **incremental multiset hash functions** (MSHs) from Clarke et al. [1]. It provides multiple methods with different security and performance tradeoffs:
 
 - **MSetXORHash**: XOR-based (set-collision resistant),
-- **MSetAddHash**: Additive-based (multiset-collision resistant) **with incremental updates**,
+- **MSetAddHash**: Additive-based (multiset-collision resistant) with incremental updates,
 - **MSetMuHash**: Multiplicative-based (multiset-collision resistant) in a finite field, keyless,
 - **MSetVAddHash**: Vector-addition–based (multiset-collision resistant), can be incremental.
 
@@ -119,8 +119,8 @@ MSetXORHash and MSetAddHash are both keyed and incremental in this repository, w
 
 | Hash Type       | Security          | Key Required | Incremental | Notes                        |
 |-----------------|-------------------|--------------|-------------|------------------------------|
-| `MSetXORHash`   | Set-collision     | Yes          | Yes         | Fast set verification        |
-| `MSetAddHash`   | Multiset-collision| Yes          | Yes         | General purpose              |
+| `MSetXORHash`   | Set-collision resistance    | Yes          | Yes         | Fast set verification        |
+| `MSetAddHash`   | Multiset-collision resistance | Yes          | Yes         | General purpose              |
 | `MSetMuHash`    | Multiset-collision| No           | No          | Keyless; short outputs       |
 | `MSetVAddHash`  | Multiset-collision| No           | Yes         | Efficient, but longer hashes |
 
