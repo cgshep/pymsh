@@ -5,7 +5,7 @@
    <img alt="PyPI - Python Version" src="https://img.shields.io/pypi/pyversions/pymsh">
    <img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/pymsh">
    <img alt="PyPI - License" src="https://img.shields.io/pypi/l/pymsh?label=license">
-   <img alt="Test Status" src="https://github.com/cgshep/pymsh/actions/workflows/tests.yml/badge.svg">
+   <img alt="Test Status" src="https://github.com/cgshep/pymsh/actions/workflows/python-package.yml/badge.svg">
 </p>
 
 **pymsh** is a Python implementation of **incremental multiset hash functions** (MSHs) from Clarke et al. [1]. It provides multiple methods with different security and performance tradeoffs:
