@@ -19,7 +19,6 @@ An **MSH** is a hash that is invariant under permutation of the input elements. 
 
 This property is useful for hashing data structures where order does not matter. Each of these implementations has a slightly different internal design to accommodate various security or performance needs.
 
----
 
 ## Installation
 
