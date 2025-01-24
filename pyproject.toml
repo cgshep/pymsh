@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pymsh"
-version = "0.2.4"
+version = "1.0.0"
 authors = [
   { name="Carlton Shepherd", email="carlton@linux.com" },
 ]
@@ -27,8 +27,3 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/cgshep/pymsh"
 "Bug Tracker" = "https://github.com/cgshep/pymsh/issues"
-
-[tool.pytest.ini_options]
-pythonpath = [
-  "src"
-]
