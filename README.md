@@ -8,13 +8,14 @@
    <img alt="Test Status" src="https://github.com/cgshep/pymsh/actions/workflows/tests.yml/badge.svg">
 </p>
 
-**pymsh** is a Python implementation of incremental multiset hash functions from Clarke et al. [1], containing for methods with different security-performance tradeoffs:
+**pymsh** is a Python implementation of incremental multiset hash functions (MSHs) from Clarke et al. [1], containing for methods with different security-performance tradeoffs:
 
-- `MSetXORHash`: XOR-based (Set-collision resistant, fastest)
-- `MSetAddHash`: Modular addition (Multiset-collision resistant)
-- `MSetMuHash`: Finite field multiplication (Keyless, DL-based security)
-- `MSetVAddHash`: Vector addition (Post-quantum secure, lattice-based)
+- `MSetXORHash`: XOR-based
+- `MSetAddHash`: Modular addition
+- `MSetMuHash`: Finite field multiplication
+- `MSetVAddHash`: Vector addition
 
+MSH hashes are invariant under the ordering of elements. In other words, $H( \{ a,b,c \} )$ will produce the same value as $H( \{ c,b,a \} )$. This has some interesting space-efficient applications where we don't require different hash values for different orders.
 
 ## Installation
 
