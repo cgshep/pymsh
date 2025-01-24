@@ -87,7 +87,7 @@ print("VAdd Hash (one-shot):", vadd_hasher.hash(multiset))
 
 MSetXORHash and MSetAddHash are both keyed and incremental in this repository, while MSetMuHash is unkeyed and typically one-shot (though it could be adapted), and MSetVAddHash is keyless and incremental.
 
-## Comparing constructions
+## Comparing Methods
 
 | Hash Type       | Security          | Key Required | Incremental | Notes                        |
 |-----------------|-------------------|--------------|-------------|------------------------------|
