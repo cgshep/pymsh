@@ -10,12 +10,14 @@ authors = [
 ]
 
 dependencies = ["sympy>=1.9"]
+keywords = ["hashing", "hash", "cryptography", "multi-set", "multiset"]
 description = "An implementation of multiset hashing"
 readme = "README.md"
 license = "MIT"
+license-files = ["LICEN[CS]E*"]
 requires-python = ">=3.7"
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -26,4 +28,4 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/cgshep/pymsh"
-"Bug Tracker" = "https://github.com/cgshep/pymsh/issues"
+"Issues" = "https://github.com/cgshep/pymsh/issues"

@@ -76,7 +76,7 @@ print("MuHash:", mu_hasher.hash(multiset))
 #
 # 4) Vector Add Hash (keyless, can be incremental, typically larger output)
 #
-vadd_hasher = MSetVAddHash(n=2**16, l=16)
+vadd_hasher = MSetVAddHash()
 print("VAdd Hash (one-shot):", vadd_hasher.hash(multiset))
 ```
 

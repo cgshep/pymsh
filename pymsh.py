@@ -185,6 +185,7 @@ class MSetAddHash:
 
         return temp.digest()
 
+
 class MSetMuHash:
     """
     Implements MSet-Mu-Hash in a prime field GF(q) as:
@@ -250,13 +251,11 @@ class MSetMuHash:
         return product
 
 
-
 class MSetVAddHash:
     """
     Implements H(M) = Σ_{b in B} [ M_b * H(b ) ] mod n
-    in *one dimension* (l=1), so +H is just addition mod n, and =H is equality.
     """
-    def __init__(self, n: int):
+    def __init__(self, n: int = 2**128):
         """
         :param n: Modulus (an integer), e.g. 2^m for some m. 
                   Or set n=2^(√m) if following the paper literally with l=√m in vector form.

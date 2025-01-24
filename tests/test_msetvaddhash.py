@@ -18,8 +18,7 @@ def test_incremental_vs_one_shot():
     If we incrementally add elements, that should match the one-shot
     .hash() of the final multiset.
     """
-    n = 1019
-    hasher = MSetVAddHash(n)
+    hasher = MSetVAddHash()
 
     # Build alpha=2, beta=3 incrementally
     hasher.update(b'alpha', 2)
@@ -37,8 +36,7 @@ def test_remove_elements():
     Demonstrate negative multiplicities for removing elements.
     Final sum should match a one-shot approach with the net counts.
     """
-    n = 1019
-    hasher = MSetVAddHash(n)
+    hasher = MSetVAddHash()
 
     # alpha=5, beta=3
     hasher.update(b'alpha', 5)
@@ -60,8 +58,7 @@ def test_negative_total_count_error():
     If you remove more elements than you've added, total_count goes negative;
     we raise ValueError per the code.
     """
-    n = 1019
-    hasher = MSetVAddHash(n)
+    hasher = MSetVAddHash()
     hasher.update(b'x', 2)
     with pytest.raises(ValueError):
         # removing 3 x => total_count = -1 => error
@@ -73,8 +70,7 @@ def test_different_multisets_different_hash():
     Two distinct multisets are quite likely (though not guaranteed) 
     to produce different sums mod n. We just check they differ in practice.
     """
-    n = 1019
-    hasher = MSetVAddHash(n)
+    hasher = MSetVAddHash()
 
     ms1 = {b'a': 1, b'b': 2}
     ms2 = {b'a': 2, b'b': 1}  # swapped multiplicities
@@ -101,8 +97,7 @@ def test_zero_update_no_op():
     """
     update(element, 0) should not change the aggregator at all.
     """
-    n = 1019
-    hasher = MSetVAddHash(n)
+    hasher = MSetVAddHash()
     hasher.update(b'foo', 5)
     sum_before = hasher.digest()
 
