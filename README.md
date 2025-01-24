@@ -35,11 +35,12 @@ sympy (for prime generation)
 Below is a simple usage example for each construction. You can either do one‐shot hashing of a Python dict (representing the multiset), or use incremental updates where supported.
 
 ```python
-import os
+import secrets
+
 from pymsh import MSetXORHash, MSetAddHash, MSetMuHash, MSetVAddHash
 
 # Example secret key for keyed hashes (XOR & Add variants).
-key = os.urandom(32)
+key = secrets.token_bytes(32)
 
 # A sample multiset with elements as bytes and integer multiplicities
 multiset = {
@@ -73,7 +74,7 @@ mu_hasher = MSetMuHash()  # typically you set a large prime q
 print("MuHash:", mu_hasher.hash(multiset))
 
 #
-# 4) Vector Add Hash (keyless or keyed, can be incremental, typically larger output)
+# 4) Vector Add Hash (keyless, can be incremental, typically larger output)
 #
 vadd_hasher = MSetVAddHash(n=2**16, l=16)
 print("VAdd Hash (one-shot):", vadd_hasher.hash(multiset))
