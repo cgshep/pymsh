@@ -27,7 +27,7 @@ This property is useful for hashing data structures where order does not matter.
 
 ```bash
 pip install pymsh
-
+```
 
 ## Dependencies
 
