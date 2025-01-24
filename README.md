@@ -15,9 +15,7 @@
 - **MSetMuHash**: Multiplicative-based (multiset-collision resistant) in a finite field, keyless,
 - **MSetVAddHash**: Vector-addition–based (multiset-collision resistant), can be incremental.
 
-An **MSH** is a hash that is invariant under permutation of the input elements. That is, 
-\[
-  H(\{a,b,c\}) \;=\; H(\{c,b,a\}).
+An **MSH** is a hash that is invariant under permutation of the input elements. That is, $H(\{a,b,c\}) = H(\{c,b,a\})$.
 \]
 This property is useful for hashing data structures where order does not matter. Each of these implementations has a slightly different internal design to accommodate various security or performance needs.
 
