@@ -8,20 +8,26 @@
    <img alt="Test Status" src="https://github.com/cgshep/pymsh/actions/workflows/tests.yml/badge.svg">
 </p>
 
-**pymsh** is a Python implementation of incremental multiset hash functions (MSHs) from Clarke et al. [1], containing for methods with different security-performance tradeoffs:
+**pymsh** is a Python implementation of **incremental multiset hash functions** (MSHs) from Clarke et al. [1]. It provides multiple methods with different security and performance tradeoffs:
 
-- `MSetXORHash`: XOR-based
-- `MSetAddHash`: Modular addition
-- `MSetMuHash`: Finite field multiplication
-- `MSetVAddHash`: Vector addition
+- **MSetXORHash**: XOR-based (set-collision resistant),
+- **MSetAddHash**: Additive-based (multiset-collision resistant) **with incremental updates**,
+- **MSetMuHash**: Multiplicative-based (multiset-collision resistant) in a finite field, keyless,
+- **MSetVAddHash**: Vector-addition–based (multiset-collision resistant), can be incremental.
 
-MSH hashes are invariant under the ordering of elements. In other words, $H( \{ a,b,c \} )$ will produce the same value as $H( \{ c,b,a \} )$. This has some interesting space-efficient applications where we don't require different hash values for different orders.
+An **MSH** is a hash that is invariant under permutation of the input elements. That is, 
+\[
+  H(\{a,b,c\}) \;=\; H(\{c,b,a\}).
+\]
+This property is useful for hashing data structures where order does not matter. Each of these implementations has a slightly different internal design to accommodate various security or performance needs.
+
+---
 
 ## Installation
 
 ```bash
 pip install pymsh
-```
+
 
 ## Dependencies
 
@@ -29,33 +35,59 @@ sympy (for prime generation)
 
 ## Basic Usage
 
-```python
-from pymsh import MSetXORHash, MSetAddHash, MSetMuHash, MSetVAddHash
-import os
+Below is a simple usage example for each construction. You can either do one‐shot hashing of a Python dict (representing the multiset), or use incremental updates where supported.
 
-key = os.urandom(32)  # For keyed hashes
+```python
+import os
+from pymsh import MSetXORHash, MSetAddHash, MSetMuHash, MSetVAddHash
+
+# Example secret key for keyed hashes (XOR & Add variants).
+key = os.urandom(32)
+
+# A sample multiset with elements as bytes and integer multiplicities
 multiset = {
-    b"apple": 3,
+    b"apple":  3,
     b"banana": 2,
     b"cherry": 1
 }
 
-# XOR Hash (Set-collision resistant)
+#
+# 1) XOR Hash (set-collision resistant, keyed, incremental)
+#
 xor_hasher = MSetXORHash(key)
-print("XOR Hash:", xor_hasher.hash(multiset))
+print("XOR Hash (one-shot):", xor_hasher.hash(multiset))
 
-# Additive Hash (Multiset-collision resistant)
+#
+# 2) Additive Hash (multiset-collision resistant, keyed, incremental)
+#
 add_hasher = MSetAddHash(key)
-print("Additive Hash:", add_hasher.hash(multiset))
+print("Additive Hash (one-shot):", add_hasher.hash(multiset))
 
-# Multiplicative Hash
-mu_hasher = MSetMuHash()
+# You can also do incremental updates:
+add_hasher.update(b"apple", 3)
+add_hasher.update(b"banana", 2)
+add_hasher.update(b"cherry", 1)
+print("Additive Hash (incremental):", add_hasher.digest())
+
+#
+# 3) Multiplicative Hash in GF(q) (multiset-collision resistant, keyless)
+#
+mu_hasher = MSetMuHash()  # typically you set a large prime q
 print("MuHash:", mu_hasher.hash(multiset))
 
-# Vector Hash
+#
+# 4) Vector Add Hash (keyless or keyed, can be incremental, typically larger output)
+#
 vadd_hasher = MSetVAddHash(n=2**16, l=16)
-print("Vector Hash:", vadd_hasher.hash(multiset))
+print("VAdd Hash (one-shot):", vadd_hasher.hash(multiset))
 ```
+
+## Incremental vs. One-shot
+
+- *Incremental:* You create an instance, call `.update(element, multiplicity)` repeatedly, then `.digest()` to obtain the final hash.
+- *One‐shot:* You simply call `.hash(multiset)` once with a dictionary of element -> multiplicity.
+
+MSetXORHash and MSetAddHash are both keyed and incremental in this repository, while MSetMuHash is unkeyed and typically one-shot (though it could be adapted), and MSetVAddHash is keyless and incremental.
 
 ## Comparing constructions
 
