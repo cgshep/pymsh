@@ -178,8 +178,8 @@ If you prefer **keyless** usage or want a smaller output size, consider **MSetMu
 
 1. D. Clarke, S. Devadas, M. van Dijk, B. Gassend, and G.E. Suh. [“Incremental Multiset Hash Functions and Their Application to Memory Integrity Checking,”](https://www.iacr.org/cryptodb/data/paper.php?pubkey=151) ASIACRYPT 2003.
 
-##  
-This project has not been audited or verified; 
+## Note
+This project has not been audited or verified; do not rely on this library for serious production systems.
 
 ## Contribute
 
