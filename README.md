@@ -20,7 +20,7 @@ Multiset hashing (MSH) produces a hash value that reflects both the _types_ of i
 
 ### Why Is This Useful?
 
-If you have a collection of elements where order does not matter (e.g., tags on a file, items in a shopping cart), a normal hash function, such as SHA256 or MD5, might give different results depending on how you list the items. A multiset hash ensures the same final hash regardless of item ordering.
+If you have a collection of elements where order does not matter (e.g., tags on a file, items in a shopping cart), a normal hash function, such as SHA256 or MD5, will give different results depending on how you list the items. A multiset hash ensures the same final hash regardless of item ordering.
 
 Furthermore, some MSHs in this library can be updated one item at a time. This is especially handy if you handle large or streaming data and want to maintain a running hash without reprocessing everything.
 
