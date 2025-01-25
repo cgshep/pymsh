@@ -8,17 +8,21 @@
    <img alt="Test Status" src="https://github.com/cgshep/pymsh/actions/workflows/python-package.yml/badge.svg">
 </p>
 
-**pymsh** is a Python implementation of **incremental multiset hash functions** (MSHs) from Clarke et al. [1]. It provides multiple methods with different security and performance tradeoffs:
+**pymsh** is a Python library that provides **multiset hash (MSH)** functions. These functions let you hash collections of items _without_ worrying about the order of those items.
 
-- **MSetXORHash**: XOR-based (set-collision resistant),
-- **MSetAddHash**: Additive-based (multiset-collision resistant) with incremental updates,
-- **MSetMuHash**: Multiplicative-based (multiset-collision resistant) in a finite field, keyless,
-- **MSetVAddHash**: Vector-addition–based (multiset-collision resistant), can be incremental.
+## What is a Multiset Hash?
 
-An **MSH** is a hash that is invariant under permutation of the input elements. That is, $H(\{a,b,c\}) = H(\{c,b,a\})$.
+A _multiset_ is like a set, except it can contain multiple instances of the same item. For example:
+- A set might be `{apple, banana, cherry}` (with no duplicates).
+- A multiset could be `{apple × 3, banana × 2, cherry × 1}`.
 
-This property is useful for hashing data structures where order does not matter. Each of these implementations has a slightly different internal design to accommodate various security or performance needs.
+Multiset hashing (MSH) produces a hash value that reflects both the _types_ of items you have and the _quantities_ of each item, but _not_ their order. In other words, if we hash the following, then the same hash values will be produed: `hash(apple, banana, banana, apple, apple, cherry) == hash(apple, apple, apple, banana, banana, cherry)`
 
+### Why Is This Useful?
+
+If you have a collection of elements where order does not matter (e.g., tags on a file, items in a shopping cart), a normal hash function, such as SHA256 or MD5, might give different results depending on how you list the items. A multiset hash ensures the same final hash regardless of item ordering.
+
+Furthermore, some MSHs in this library can be updated one item at a time. This is especially handy if you handle large or streaming data and want to maintain a running hash without reprocessing everything.
 
 ## Installation
 
@@ -26,96 +30,141 @@ This property is useful for hashing data structures where order does not matter.
 pip install pymsh
 ```
 
-## Dependencies
+**Dependencies**:
+- `sympy` (used for generating large primes in `MSetMuHash`)
 
-sympy (for prime generation)
 
 ## Basic Usage
 
-MSetAddHash is great for general-purpose usage. Let's assume we have a list with some repeated elements, such as `["apple", "apple", "banana", "cherry", "banana", "apple"]`
+For most general use cases, we recommend using the **additive multiset hash** (accessible via the shortcut class `Hasher`).
 
-We can use the helper function `list_to_multiset` to produce a multiset (pymsh expects byte representations of strings):
+1. **Prepare a multiset**: You can use our helper `list_to_multiset` if you have a Python list containing repeated elements.
+2. **Hash it**: Pass the resulting dictionary (`element -> count`) into a hasher.
+
+*Note: pymsh expects your inputs to be passed as bytes.*
+
+Example:
 ```python
 from pymsh import list_to_multiset, Hasher
 
-lst = [b"apple", b"apple", b"banana", b"cherry", b"banana", b"apple"]
-multiset = list_to_multiset(lst)
-```
-This gives us:
-```python
-{b"apple": 3, b"banana": 2, b"cherry": 1}
-```
-We can then use our general `Hasher` class, a synonym for the general-purpose `MSetAddHash` class, as follows:
-```python
+# Suppose you have this list with repeated elements
+fruit_list = [b"apple", b"apple", b"banana", b"cherry", b"banana", b"apple"]
+
+# 1) Convert the list to a multiset:
+multiset = list_to_multiset(fruit_list)
+# => {b"apple": 3, b"banana": 2, b"cherry": 1}
+
+# 2) Hash your multiset (Hasher is an alias for MSetAddHash)
 msh = Hasher().hash(multiset)
+print("Multiset hash:", msh)
 ```
 
-It's that easy! 
-
+That’s it! You’ll get a tuple representing the multiset, independent of how you ordered "apple, banana, cherry."
 
 ## Advanced Usage
 
-You can use other constructions using the below examples. You can either do one‐shot hashing of a Python dict (representing the multiset), or use incremental updates where supported.
+`pymsh` implements multiple MSH constructions, each with its own tradeoffs in security, performance, and whether it requires a secret key. Below is a quick overview; skip to **Incremental vs. One-shot Hashing** if you don’t need these details right now.
+
+
+<details>
+<summary><strong>MSetXORHash</strong> (Keyed, Set-collision Resistant)</summary>
+
+- **What it does**: A keyed hash using XOR operations internally.
+- **Best for**: Cases where you only need to detect changes in the set of items (ignores the exact count of each item, though).
+- **Supports incremental hashing?**: Yes.
+- **Uses a secret key**: Yes.
+- It is **NOT** multiset collision-resistant; if some of your elements repeat, then the same hash values may be produced for different orderings.
+</details>
+
+
+<details>
+<summary><strong>MSetAddHash</strong> (Keyed, Multiset-collision Resistant)</summary>
+
+- **What it does**: Uses an additive approach under a secret key to ensure that different multisets produce distinct hashes.
+- **Best for**: Most general-purpose scenarios. This is the same as the default `Hasher` class.
+- **Supports incremental hashing?**: Yes.
+- **Uses a secret key**: Yes.
+</details>
+
+<details>
+<summary><strong>MSetMuHash</strong> (Keyless, Multiset-collision Resistant)</summary>
+
+- **What it does**: Uses multiplication in a finite field (large prime modulus).
+- **Best for**: Keyless scenarios with a short output size. Good when you want collision resistance without managing keys.
+- **Supports incremental hashing?**: No.
+- **Uses a secret key**: No.
+</details>
+
+<details>
+<summary><strong>MSetVAddHash</strong> (Keyless, Multiset-collision Resistant)</summary>
+
+- **What it does**: Uses vector addition space.
+- **Best for**: Keyless scenarios with incremental updates; yields a larger hash compared to MuHash, but often simpler to handle incrementally.
+- **Supports incremental hashing?**: Yes.
+- **Requires a Key**: No.
+</details>
+
+### Examples
 
 ```python
 import secrets
+from pymsh import (
+    MSetXORHash,
+    MSetAddHash,
+    MSetMuHash,
+    MSetVAddHash
+)
 
-from pymsh import MSetXORHash, MSetAddHash, MSetMuHash, MSetVAddHash
-
-# Example secret key for keyed hashes (XOR and Add variants).
+# Sample secret key for keyed hashes
 key = secrets.token_bytes(32)
 
-# A sample multiset with elements as bytes and integer multiplicities
+# A sample multiset: item -> count
 multiset = {
-    b"apple":  3,
+    b"apple": 3,
     b"banana": 2,
     b"cherry": 1
 }
 
-#
-# 1) XOR Hash (set-collision resistant, keyed, incremental)
-#
+# 1) XOR Hash (Keyed, set-collision resistant)
 xor_hasher = MSetXORHash(key)
-print("XOR Hash (one-shot):", xor_hasher.hash(multiset))
+xor_result = xor_hasher.hash(multiset)
+print("XOR Hash (one-shot):", xor_result)
 
-#
-# 2) Additive Hash (multiset-collision resistant, keyed, incremental)
-#
+# 2) Additive Hash (Keyed, multiset-collision resistant)
 add_hasher = MSetAddHash(key)
 one_shot = add_hasher.hash(multiset)
 print("Additive Hash (one-shot):", one_shot)
 
-# You can also do incremental updates:
+# Incremental usage of Additive Hash
 add_hasher.update(b"apple", 3)
 add_hasher.update(b"banana", 2)
 add_hasher.update(b"cherry", 1)
 incremental_hash = add_hasher.digest()
 print("Additive Hash (incremental):", incremental_hash)
+assert one_shot == incremental_hash  # They should match
 
-# Confirm that the one-shot and incremental values are the same
-assert one_shot == incremental_hash
-
-#
-# 3) Multiplicative Hash in GF(q) (multiset-collision resistant, keyless)
-#
-mu_hasher = MSetMuHash()  # typically you set a large prime q
+# 3) MuHash (Keyless)
+mu_hasher = MSetMuHash()
 print("MuHash:", mu_hasher.hash(multiset))
 
-#
-# 4) Vector Add Hash (keyless, can be incremental, typically larger output)
-#
+# 4) Vector Add Hash (Keyless)
 vadd_hasher = MSetVAddHash()
-print("VAdd Hash (one-shot):", vadd_hasher.hash(multiset))
+print("VAdd Hash:", vadd_hasher.hash(multiset))
 ```
 
-## Incremental vs. One-shot
+---
 
-- *Incremental:* You create an instance, call `.update(element, multiplicity)` repeatedly, then `.digest()` to obtain the final hash.
-- *One‐shot:* You simply call `.hash(multiset)` once with a dictionary of element -> multiplicity.
+## Incremental vs. One-shot Hashing
 
-MSetXORHash and MSetAddHash are both keyed and incremental in this repository, while MSetMuHash is unkeyed and typically one-shot (though it could be adapted), and MSetVAddHash is keyless and incremental.
+**One‐shot**: Pass a full dictionary (e.g., `{item: count}`) at once using `.hash(multiset)`.
 
-## Comparing Methods
+**Incremental**: Create an instance, then call `.update(item, count)` for each new element as needed, and finally call `.digest()` to get the final hash.
+
+## Which Should I Pick?
+
+For most **general-purpose** tasks, use **MSetAddHash** (the default `Hasher`).
+
+If you prefer **keyless** usage or want a smaller output size, consider **MSetMuHash**. However, if you need **incremental** and **keyless**, try **MSetVAddHash**. Here's a comparison table:
 
 | Hash Type       | Security          | Key Required | Incremental | Notes                        |
 |-----------------|-------------------|--------------|-------------|------------------------------|
@@ -124,6 +173,14 @@ MSetXORHash and MSetAddHash are both keyed and incremental in this repository, w
 | `MSetMuHash`    | Multiset-collision| No           | No          | Keyless; short outputs       |
 | `MSetVAddHash`  | Multiset-collision| No           | Yes         | Efficient, but longer hashes |
 
+
 ## References
 
-1. D. Clarke, S. Devadas, M. van Dijk, B. Gassend, and G.E. Suh. ["Incremental Multiset Hash Functions and Their Application to Memory Integrity Checking,"](https://www.iacr.org/cryptodb/data/paper.php?pubkey=151) ASIACRYPT 2003.
+1. D. Clarke, S. Devadas, M. van Dijk, B. Gassend, and G.E. Suh. [“Incremental Multiset Hash Functions and Their Application to Memory Integrity Checking,”](https://www.iacr.org/cryptodb/data/paper.php?pubkey=151) ASIACRYPT 2003.
+
+##  
+This project has not been audited or verified; 
+
+## Contribute
+
+Feel free to open an issue or pull request if you have questions or suggestions!
