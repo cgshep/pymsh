@@ -14,7 +14,7 @@
 
 A _multiset_ is like a set, except it can contain multiple instances of the same item. For example:
 - A set might be `[apple, banana, cherry]` (with no duplicates).
-- A multiset could be `[apple, apple, apple, banana, banana, cherry}` (duplicates matter).
+- A multiset could be `[apple, apple, apple, banana, banana, cherry]` (duplicates matter).
 
 Multiset hashing (MSH) produces a hash value that reflects both the _types_ of items you have and the _quantities_ of each item, but _not_ their order. If we hash the following using an MSH scheme, then the same hash values will be produced: `hash(apple, banana, banana, apple, apple, cherry) == hash(apple, apple, apple, banana, banana, cherry)` 
 
