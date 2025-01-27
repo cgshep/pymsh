@@ -122,7 +122,7 @@ class MSetXORHash:
         # Update total_count mod 2^m
         self.total_count = (self.total_count + multiplicity) % (1 << self.m)
 
-    def digest(self) -> tuple[int, int, bytes]:
+    def digest(self) -> tuple:
         """
         Produce the current digest.
 
@@ -131,7 +131,7 @@ class MSetXORHash:
         """
         return self.xor_aggregator, self.total_count, self.nonce
 
-    def hash(self, multiset: dict[bytes, int]) -> tuple[int, int, bytes]:
+    def hash(self, multiset: dict) -> tuple:
         """
         One-shot computation of the MSet-XOR-Hash for `multiset`, ignoring current state.
 
@@ -220,7 +220,7 @@ class MSetAddHash:
         delta = (h_elem * multiplicity) % (1 << self.m)
         self.acc = (self.acc + delta) % (1 << self.m)
 
-    def digest(self) -> tuple[int, bytes]:
+    def digest(self) -> tuple:
         """
         Return the current hash state and nonce.
 
@@ -229,7 +229,7 @@ class MSetAddHash:
         """
         return self.acc, self.nonce
 
-    def hash(self, multiset: dict[bytes, int]) -> tuple[int, bytes]:
+    def hash(self, multiset: dict) -> tuple:
         """
         One-shot hash of a multiset, ignoring the current incremental state.
 
@@ -293,7 +293,7 @@ class MSetMuHash:
         val = int.from_bytes(raw, 'big')
         return (val % (self.q - 1)) + 1
 
-    def hash(self, multiset: dict[bytes, int]) -> int:
+    def hash(self, multiset: dict) -> int:
         """
         Compute the multiplicative hash of `multiset` in :math:`GF(q)`.
 
@@ -387,7 +387,7 @@ class MSetVAddHash:
         """
         return self.acc
 
-    def hash(self, multiset: dict[bytes, int]) -> int:
+    def hash(self, multiset: dict) -> int:
         """
         One-shot computation ignoring the current internal state.
 
