@@ -38,7 +38,6 @@ def test_negative_multiplicity():
     """
     Negative multiplicities must raise an error.
     """
-    q = 1019
     hasher = MSetMuHash()
     with pytest.raises(ValueError):
         hasher.hash({b'bad': -5})
