@@ -7,9 +7,7 @@ def test_same_multiset_same_hash():
     """
     The same multiset should always hash to the same product mod q.
     """
-    # For demonstration, let's use a small prime:
-    q = 1019  # small prime, not secure in practice
-    hasher = MSetMuHash(q)
+    hasher = MSetMuHash()
 
     multiset = {
         b'apple': 2,
@@ -26,8 +24,7 @@ def test_different_multisets_different_hash():
     Two different multisets are very unlikely to collide,
     though it's theoretically possible. We just check they differ in practice.
     """
-    q = 1019
-    hasher = MSetMuHash(q)
+    hasher = MSetMuHash()
 
     ms1 = {b'a': 1, b'b': 2}
     ms2 = {b'a': 2, b'b': 1}  # swapped multiplicities
@@ -42,7 +39,7 @@ def test_negative_multiplicity():
     Negative multiplicities must raise an error.
     """
     q = 1019
-    hasher = MSetMuHash(q)
+    hasher = MSetMuHash()
     with pytest.raises(ValueError):
         hasher.hash({b'bad': -5})
 
@@ -52,8 +49,7 @@ def test_empty_multiset():
     By definition, the product over an empty set is 1
     (the 'empty product' is conventionally 1 mod q).
     """
-    q = 1019
-    hasher = MSetMuHash(q)
+    hasher = MSetMuHash()
     res = hasher.hash({})
     assert res == 1, "Empty product should be 1 mod q."
 
@@ -62,8 +58,7 @@ def test_zero_multiplicity():
     """
     Multiplicity 0 means we skip that element. Product should remain unchanged.
     """
-    q = 1019
-    hasher = MSetMuHash(q)
+    hasher = MSetMuHash()
 
     # This is effectively the same as {b'x': 2} because b'y' has count 0
     ms = {b'x': 2, b'y': 0}
