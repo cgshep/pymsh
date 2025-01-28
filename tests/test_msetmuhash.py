@@ -1,7 +1,7 @@
 import pytest
-import secrets
 
 from pymsh import MSetMuHash
+
 
 def test_same_multiset_same_hash():
     """
@@ -20,6 +20,7 @@ def test_same_multiset_same_hash():
     h2 = hasher.hash(multiset)
     assert h1 == h2, "Same multiset => same hash."
 
+
 def test_different_multisets_different_hash():
     """
     Two different multisets are very unlikely to collide,
@@ -33,7 +34,8 @@ def test_different_multisets_different_hash():
 
     h1 = hasher.hash(ms1)
     h2 = hasher.hash(ms2)
-    assert h1 != h2, "Distinct multisets should produce distinct results (most likely)."
+    assert h1 != h2, "Distinct multisets should produce distinct results."
+
 
 def test_negative_multiplicity():
     """
@@ -44,6 +46,7 @@ def test_negative_multiplicity():
     with pytest.raises(ValueError):
         hasher.hash({b'bad': -5})
 
+
 def test_empty_multiset():
     """
     By definition, the product over an empty set is 1
@@ -53,6 +56,7 @@ def test_empty_multiset():
     hasher = MSetMuHash(q)
     res = hasher.hash({})
     assert res == 1, "Empty product should be 1 mod q."
+
 
 def test_zero_multiplicity():
     """
@@ -71,11 +75,12 @@ def test_zero_multiplicity():
 
     assert res == res_no_y, "Multiplicity 0 should not affect the product."
 
+
 def test_exponentiation_wrap():
     """
-    Check that large multiplicities are handled properly mod q-1 in exponents, 
-    if that is relevant. Actually, we do pow(hval, count, q) in Python, 
-    so it is correct even if count >= q. 
+    Check that large multiplicities are handled properly mod q-1 in exponents,
+    if that is relevant. Actually, we do pow(hval, count, q) in Python
+    so it is correct even if count >= q.
     """
     q = 1019
     hasher = MSetMuHash(q)

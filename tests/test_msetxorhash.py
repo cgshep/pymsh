@@ -1,10 +1,8 @@
 import pytest
-import os
 import secrets
-import hashlib
-import hmac
 
 from pymsh import MSetXORHash
+
 
 def test_same_multiset_same_hash():
     """Two identical multisets should produce the same final digest."""
@@ -23,11 +21,15 @@ def test_same_multiset_same_hash():
         hasher1.update(elem, cnt)
         hasher2.update(elem, cnt)
 
-    assert hasher1.digest() == hasher2.digest(), "Digests differ for same multiset."
+    assert hasher1.digest() == hasher2.digest(), \
+        "Digests differ for same multiset."
 
 
 def test_different_multiset_differs():
-    """Changing at least one element or multiplicity should change the hash with high probability."""
+    """
+    Changing at least one element or multiplicity should
+    change the hash with high probability.
+    """
     key = secrets.token_bytes(32)
     fixed_nonce = b'\x00'*16  # or some test value
     hasher_original = MSetXORHash(key, m=256, nonce=fixed_nonce)
@@ -52,9 +54,10 @@ def test_different_multiset_differs():
     digest_original = hasher_original.digest()
     digest_modified = hasher_modified.digest()
 
-    # They might accidentally collide, but it's extremely unlikely for a 256-bit hash.
+    # They might accidentally collide, but it's unlikely for a 256-bit hash.
     # We just check that they're not trivially equal.
-    assert digest_original != digest_modified, "Expected different digests for different multisets."
+    assert digest_original != digest_modified, \
+        "Expected different digests for different multisets."
 
 
 def test_negative_multiplicity_raises():
@@ -66,7 +69,10 @@ def test_negative_multiplicity_raises():
 
 
 def test_empty_multiset():
-    """Hashing an empty multiset is just H_K(0, r) in the XOR part, 0 for the count, plus r."""
+    """
+    Hashing an empty multiset is just H_K(0, r) in the XOR part,
+    0 for the count, plus r.
+    """
     key = secrets.token_bytes(32)
     hasher = MSetXORHash(key)
     digest = hasher.digest()
@@ -85,7 +91,9 @@ def test_empty_multiset():
 
 
 def test_sum_of_multiplicities():
-    """Ensure that the total_count is indeed the sum of all multiplicities mod 2^m."""
+    """
+    Ensure that the total_count is indeed the sum of
+    all multiplicities mod 2^m."""
     key = secrets.token_bytes(32)
     m = 10  # small-ish so we can check wrap-around if needed
     hasher = MSetXORHash(key, m=m)
@@ -101,12 +109,16 @@ def test_sum_of_multiplicities():
 
     xor_val, total_count, nonce = hasher.digest()
     expected = (500 + 300 + 300) % (1 << m)  # % 1024
-    assert total_count == expected, "total_count does not match sum of multiplicities mod 2^m"
+    assert total_count == expected, \
+        "total_count does not match sum of multiplicities mod 2^m"
 
 
 def test_hash_method():
-    """Check that hasher.hash(multiset) produces the same result as doing incremental updates."""
-    fixed_nonce = b'\x00'*16 
+    """
+    Check that hasher.hash(multiset) produces the same
+    result as doing incremental updates.
+    """
+    fixed_nonce = b'\x00'*16
     key = secrets.token_bytes(32)
     hasher = MSetXORHash(key, m=256, nonce=fixed_nonce)
     multiset = {
@@ -122,4 +134,5 @@ def test_hash_method():
 
     digest_via_manual = hasher2.digest()
 
-    assert digest_via_hash == digest_via_manual, "hash() method differs from manual incremental update."
+    assert digest_via_hash == digest_via_manual, \
+        "hash() method differs from manual incremental update."

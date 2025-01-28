@@ -1,5 +1,4 @@
 import pytest
-import secrets
 
 from pymsh import MSetVAddHash
 
@@ -8,7 +7,7 @@ def test_empty_multiset():
     """
     With no updates, digest() should be 0, because the sum is empty.
     """
-    # let's pick some small n=1019 for demonstration; not cryptographically large
+    # let's pick some small n=1019 for demonstration
     hasher = MSetVAddHash(n=1019)
     assert hasher.digest() == 0, "Empty aggregator => sum=0 mod n."
 
@@ -50,7 +49,8 @@ def test_remove_elements():
     # compare with one-shot
     ref_multiset = {b'alpha': 3, b'beta': 3}
     ref_sum = hasher.hash(ref_multiset)
-    assert final_sum == ref_sum, "Removing elements yields the correct final sum."
+    assert final_sum == ref_sum, \
+        "Removing elements yields the correct final sum."
 
 
 def test_negative_total_count_error():
@@ -67,7 +67,7 @@ def test_negative_total_count_error():
 
 def test_different_multisets_different_hash():
     """
-    Two distinct multisets are quite likely (though not guaranteed) 
+    Two distinct multisets are quite likely (though not guaranteed)
     to produce different sums mod n. We just check they differ in practice.
     """
     hasher = MSetVAddHash()
@@ -77,17 +77,18 @@ def test_different_multisets_different_hash():
 
     h1 = hasher.hash(ms1)
     h2 = hasher.hash(ms2)
-    assert h1 != h2, "Distinct multisets should yield different sums in practice."
+    assert h1 != h2, \
+        "Distinct multisets should yield different sums in practice."
 
 
 def test_small_modulus():
     """
-    Use a tiny modulus so big multiplicities wrap around. 
+    Use a tiny modulus so big multiplicities wrap around.
     E.g. n=16 -> sums are mod 16
     """
     hasher = MSetVAddHash(n=16)
     # add big multiplicities
-    hasher.update(b'x', 100)  
+    hasher.update(b'x', 100)
     # final sum must be within 0..15
     result = hasher.digest()
     assert 0 <= result < 16, "Result must be mod 16."
@@ -103,4 +104,5 @@ def test_zero_update_no_op():
 
     hasher.update(b'foo', 0)
     sum_after = hasher.digest()
-    assert sum_before == sum_after, "Updating with multiplicity=0 must do nothing."
+    assert sum_before == sum_after, \
+        "Updating with multiplicity=0 must do nothing."

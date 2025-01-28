@@ -4,7 +4,7 @@ A Python implementation of several incremental multiset hash functions.
 Each class implements a different multiset hash scheme:
 
 1. MSetXORHash  : XOR-based incremental hash (using a keyed HMAC-SHA256).
-2. MSetAddHash  : Addition-based incremental hash (Corollary 2 in Clarke et al.).
+2. MSetAddHash  : Additive incremental hash (Cor. 2 in Clarke et al.)
 3. MSetMuHash   : Multiplicative hash over a prime field GF(q).
 4. MSetVAddHash : Unkeyed, integer addition-based hash mod n.
 """
@@ -12,7 +12,6 @@ import hmac
 import hashlib
 import secrets
 
-from sympy import randprime
 from collections import Counter
 
 
@@ -37,23 +36,15 @@ class MSetXORHash:
     """
     Implements an XOR-based incremental multiset hash (MSet-XOR-Hash).
 
-    The approach is defined as:
-
-    .. math::
-
-        H(M) = (\\oplus_{b : M_b \\text{ is odd}} H_K(1, b)) \\\Vert (\\sum_b M_b \\mod 2^m) \\\Vert (\\text{nonce})
-
-    where :math:`H_K` is a keyed HMAC-SHA256 truncated to :math:`m` bits if necessary.
-
     :var key: The secret key for HMAC (the 'K' in H_K).
     :vartype key: bytes
-    :var m: The bit-size for truncating outputs and for total multiplicity counts.
+    :var m: Bit-size for truncating outputs and for total multiplicity counts.
     :vartype m: int
     :var nonce: A random nonce to ensure uniqueness.
     :vartype nonce: bytes
     :var xor_aggregator: Internal XOR aggregator state.
     :vartype xor_aggregator: int
-    :var total_count: Running total of element multiplicities modulo :math:`2^m`.
+    :var total_count: Total of element multiplicities modulo :math:`2^m`.
     :vartype total_count: int
     """
 
@@ -61,11 +52,12 @@ class MSetXORHash:
         """
         Initialize the MSetXORHash.
 
-        :param key: The secret key for HMAC (H_K). If None, a 32-byte key is generated.
+        :param key: The HMAC secret key. If None, a 32-byte key is generated.
         :type key: bytes, optional
-        :param m: The number of bits for truncation and mod-sum of multiplicities, defaults to 256.
+        :param m: The number of bits for truncation and mod-sum of
+                  multiplicities, defaults=256
         :type m: int, optional
-        :param nonce: Random nonce for domain separation; if None, a 16-byte nonce is generated.
+        :param nonce: Random nonce; if None, a 16-byte one is generated.
         :type nonce: bytes, optional
         """
         if key is None:
@@ -95,7 +87,8 @@ class MSetXORHash:
         :return: The HMAC-SHA256 output as an integer in [0, :math:`2^m - 1`].
         :rtype: int
         """
-        raw = hmac.new(self.key, bytes([prefix]) + data, hashlib.sha256).digest()
+        raw = hmac.new(self.key, bytes([prefix]) + data,
+                       hashlib.sha256).digest()
         val = int.from_bytes(raw, 'big')
         if self.m < 256:
             val %= (1 << self.m)
@@ -107,7 +100,7 @@ class MSetXORHash:
 
         :param element: Element to be added or removed.
         :type element: bytes
-        :param multiplicity: Number of times the element is present (or removed if you track negatives).
+        :param multiplicity: # times element is present.
                              Must be non-negative in this class.
         :type multiplicity: int
         :raises ValueError: If `multiplicity` is negative.
@@ -133,7 +126,8 @@ class MSetXORHash:
 
     def hash(self, multiset: dict) -> tuple:
         """
-        One-shot computation of the MSet-XOR-Hash for `multiset`, ignoring current state.
+        One-shot computation of the MSet-XOR-Hash for `multiset`,
+        ignoring current state.
 
         :param multiset: A dict mapping elements to their multiplicities.
         :type multiset: dict[bytes, int]
@@ -154,7 +148,8 @@ class MSetAddHash:
 
     .. math::
 
-        H(M) = H_K(0, nonce) + \\sum_{b} \\bigl(M_b * H_K(1, b)\\bigr) \\mod 2^m
+        H(M) = H_K(0, nonce) + \\sum_{b} \\bigl(
+                   M_b * H_K(1, b)\\bigr) \\mod 2^m
 
     :var key: Secret key for HMAC-based PRF.
     :vartype key: bytes
@@ -188,7 +183,9 @@ class MSetAddHash:
 
     def _H(self, prefix: int, data: bytes) -> int:
         """
-        PRF: :math:`H_K(prefix, data) = \\text{HMAC-SHA256} (key, prefix||data)`, truncated to :math:`m` bits.
+        Internal PRF
+        :math:`H_K(prefix, data) = \\text{HMAC-SHA256} (key, prefix||data)`,
+        truncated to :math:`m` bits.
 
         :param prefix: Single byte prefix (e.g., 0 or 1).
         :type prefix: int
@@ -197,7 +194,8 @@ class MSetAddHash:
         :return: The integer result in [0, :math:`2^m - 1`].
         :rtype: int
         """
-        raw = hmac.new(self.key, bytes([prefix]) + data, hashlib.sha256).digest()
+        raw = hmac.new(self.key, bytes([prefix]) + data,
+                       hashlib.sha256).digest()
         val = int.from_bytes(raw, 'big')
         if self.m < 256:
             val %= (1 << self.m)
@@ -210,7 +208,6 @@ class MSetAddHash:
         :param element: The element (byte string).
         :type element: bytes
         :param multiplicity: How many times to add this element.
-                             May be negative if removal is allowed by your design.
         :type multiplicity: int
         """
         if multiplicity == 0:
@@ -237,7 +234,7 @@ class MSetAddHash:
         :type multiset: dict[bytes, int]
         :return: (sum_mod_2m, nonce)
         :rtype: (int, bytes)
-        :raises ValueError: If any multiplicity is negative, in this default policy.
+        :raises ValueError: If any multiplicity is negative.
         """
         temp = MSetAddHash(self.key, self.m)
         temp.nonce = self.nonce
@@ -245,10 +242,36 @@ class MSetAddHash:
 
         for elem, mult in multiset.items():
             if mult < 0:
-                raise ValueError(f"Negative multiplicity: {mult} for element {elem}")
+                raise ValueError(
+                    f"Negative multiplicity: {mult} for element {elem}")
             temp.update(elem, mult)
 
         return temp.digest()
+
+
+# Public modulus for GF(q)
+public_q = int("6652616640577475268971429076805625149913200"
+               "7237473929971857046929191916395473010413181"
+               "6921905009274874106841977276958382342329138"
+               "7880913720094685938088211204127144470701045"
+               "8217504597989486041057295615582023840660640"
+               "6736946360571391328394114493744144145174864"
+               "9425911675412818184664932340809747718924170"
+               "2922582870945918553504431971919931032027568"
+               "0445554556187296740996375234558154304451216"
+               "0125651485262551934525973355751189002994750"
+               "3856216983840057848720320051096475399402402"
+               "5078330763094914973367247392698481186069677"
+               "7424080627152889650559503455254791753121600"
+               "2880701566372634548740195419114055944960856"
+               "9374555581149023077545834570641481012491106"
+               "7171107311501557718711966052508420204852872"
+               "5781421047435505552487306272127367079188222"
+               "6249240792539422214906922905377456006121111"
+               "6959272952284971420972177813441764061521154"
+               "2964437706121614548953434806289746488448383"
+               "6757180885372769479907419744068216269151011"
+               "3219811148336988874037")
 
 
 class MSetMuHash:
@@ -274,7 +297,7 @@ class MSetMuHash:
         :param param: Bit-length of the prime if generated, defaults to 2048.
         :type param: int, optional
         """
-        self.q = q or randprime(2**param, 2**(param + 1))
+        self.q = q or public_q
 
     def _H(self, data: bytes) -> int:
         """
@@ -322,7 +345,8 @@ class MSetVAddHash:
 
         H(M) = \\sum_{b \\in M} \\bigl( M_b * H(b) \\bigr) \\mod n
 
-    where :math:`H(b)` is unkeyed, such as :math:`H(b) = \\text{SHA256}(b) \\mod n`.
+    where :math:`H(b)` is unkeyed, such as
+    :math:`H(b) = \\text{SHA256}(b) \\mod n`.
 
     :var n: Modulus (e.g. :math:`2^m`).
     :vartype n: int
@@ -400,7 +424,7 @@ class MSetVAddHash:
         tmp = 0
         for e, m in multiset.items():
             if m < 0:
-                raise ValueError("Negative multiplicity not allowed by default.")
+                raise ValueError("Negative multiplicity not allowed.")
             hval = self._H(e)
             tmp = (tmp + (hval * m)) % self.n
         return tmp

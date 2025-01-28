@@ -4,12 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pymsh"
-version = "1.0.6"
+version = "1.1"
 authors = [
   { name="Carlton Shepherd", email="carlton@linux.com" },
 ]
 
-dependencies = ["sympy>=1.9"]
 keywords = ["hashing", "hash", "cryptography", "multi-set", "multiset"]
 description = "An implementation of multiset hashing"
 readme = "README.md"

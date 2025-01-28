@@ -3,6 +3,7 @@ import pytest
 
 from pymsh import MSetAddHash
 
+
 def test_same_multiset_same_hash():
     """
     Two calls to 'hash()' on the *same* hasher with the *same* multiset
@@ -10,7 +11,7 @@ def test_same_multiset_same_hash():
     """
     key = secrets.token_bytes(32)
     hasher = MSetAddHash(key, m=256)
-    
+
     multiset = {
         b'cat': 3,
         b'dog': 5
@@ -37,7 +38,7 @@ def test_different_multiset_different_hash():
     digest_a = hasher.hash(multiset_a)
     digest_b = hasher.hash(multiset_b)
     assert digest_a != digest_b, (
-        "Expected different digests for different multisets, but got a collision."
+        "Expected different digests for multisets, but got a collision."
     )
 
 
@@ -50,20 +51,26 @@ def test_negative_multiplicity():
 
 
 def test_empty_multiset():
-    """Hashing an empty multiset should just be H(0, nonce) mod 2^m, plus the nonce."""
+    """
+    Hashing an empty multiset should just be H(0, nonce) mod 2^m,
+    plus the nonce.
+    """
     key = secrets.token_bytes(32)
     hasher = MSetAddHash(key, m=256)
     digest, nonce = hasher.hash({})
 
     # digest should be an integer, nonce is 16 random bytes
     assert isinstance(digest, int), "Digest must be an integer."
-    assert isinstance(nonce, bytes) and len(nonce) == 16, "Nonce must be 16 bytes."
-    # We can't easily predict what H(0, nonce) will be, but at least we know there's no error.
+    assert isinstance(nonce, bytes) and len(nonce) == 16, \
+        "Nonce must be 16 bytes."
+    # We can't easily predict what H(0, nonce) will be,
+    # but at least we know there's no error.
 
 
 def test_small_modulus():
     """
-    Use a small m (e.g. 8 bits) so we can check that big multiplicities wrap around mod 2^m.
+    Use a small m (e.g. 8 bits) so we can check that big
+    multiplicities wrap around mod 2^m.
     """
     key = secrets.token_bytes(32)
     m = 8
@@ -96,8 +103,9 @@ def test_consistency_between_instances():
 
     digest2 = hasher2.hash(multiset)
     assert digest1 == digest2, (
-        "Two MSetAddHash objects with identical key+nonce must yield the same digest."
+        "Two MSetAddHash objects with identical key+nonce not the same!"
     )
+
 
 def test_incremental_vs_one_shot():
     key = secrets.token_bytes(32)
