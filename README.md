@@ -32,10 +32,6 @@ Furthermore, some MSHs in this library can be updated one item at a time. This i
 pip install pymsh
 ```
 
-**Dependencies**:
-- `sympy` (used for generating large primes in `MSetMuHash`)
-
-
 ## Basic Usage
 
 For most general use cases, we recommend using the **additive multiset hash** (accessible via the shortcut class `Hasher`).
