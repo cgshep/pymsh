@@ -99,7 +99,7 @@ class MSetXORHash:
         :rtype: int
         """
         raw = hmac.new(self.key, bytes([prefix]) + data,
-                       hashlib.blake2b).digest()
+                       "blake2b").digest()
         val = int.from_bytes(raw, 'big')
         if self.m < 512:
             val %= (1 << self.m)
@@ -133,7 +133,7 @@ class MSetXORHash:
         :return: A tuple (xor_aggregator, total_count, nonce).
         :rtype: (int, int, bytes)
         """
-        return (self.xor_aggregator.to_bytes(self.m // 8),
+        return (self.xor_aggregator.to_bytes(self.m // 8, byteorder="big"),
                 self.total_count,
                 self.nonce)
 
@@ -215,7 +215,7 @@ class MSetAddHash:
         :rtype: int
         """
         raw = hmac.new(self.key, bytes([prefix]) + data,
-                       hashlib.blake2b).digest()
+                       "blake2b").digest()
         val = int.from_bytes(raw, 'big')
         if self.m < 512:
             val %= (1 << self.m)
@@ -244,7 +244,7 @@ class MSetAddHash:
         :return: (acc, nonce)
         :rtype: (int, bytes)
         """
-        return self.acc.to_bytes((self.m+7) // 8), self.nonce
+        return self.acc.to_bytes((self.m+7) // 8, byteorder="big"), self.nonce
 
     def hash(self, multiset: dict) -> tuple:
         """
@@ -365,7 +365,7 @@ class MSetMuHash:
                 continue
             hval = self._H(elem)
             product = (product * pow(hval, count, self.q)) % self.q
-        return product.to_bytes((self.q_bits + 7) // 8)
+        return product.to_bytes((self.q_bits + 7) // 8, byteorder="big")
 
 
 class MSetVAddHash:
@@ -441,7 +441,7 @@ class MSetVAddHash:
         :return: The sum modulo `n`.
         :rtype: bytes
         """
-        return self.acc.to_bytes((self.n_bits + 7) // 8)
+        return self.acc.to_bytes((self.n_bits + 7) // 8, byteorder="big")
 
     def hash(self, multiset: dict) -> bytes:
         """
@@ -459,7 +459,7 @@ class MSetVAddHash:
                 raise ValueError("Negative multiplicity not allowed.")
             hval = self._H(e)
             tmp = (tmp + (hval * m)) % self.n
-        return tmp.to_bytes((self.n_bits + 7) // 8)
+        return tmp.to_bytes((self.n_bits + 7) // 8, byteorder="big")
 
 
 #: By default, export a convenient alias.
