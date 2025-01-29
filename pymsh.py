@@ -3,7 +3,7 @@ A Python implementation of several incremental multiset hash functions.
 
 Each class implements a different multiset hash scheme:
 
-1. MSetXORHash  : XOR-based incremental hash (using a keyed HMAC-SHA256).
+1. MSetXORHash  : XOR-based incremental hash (using a keyed HMAC-BLAKE2b).
 2. MSetAddHash  : Additive incremental hash (Cor. 2 in Clarke et al.)
 3. MSetMuHash   : Multiplicative hash over a prime field GF(q).
 4. MSetVAddHash : Unkeyed, integer addition-based hash mod n.
@@ -48,14 +48,14 @@ class MSetXORHash:
     :vartype total_count: int
     """
 
-    def __init__(self, key: bytes = None, m: int = 256, nonce: bytes = None):
+    def __init__(self, key: bytes = None, m: int = 512, nonce: bytes = None):
         """
         Initialize the MSetXORHash.
 
         :param key: The HMAC secret key. If None, a 32-byte key is generated.
         :type key: bytes, optional
         :param m: The number of bits for truncation and mod-sum of
-                  multiplicities, defaults=256
+                  multiplicities, defaults=512
         :type m: int, optional
         :param nonce: Random nonce; if None, a 16-byte one is generated.
         :type nonce: bytes, optional
@@ -84,13 +84,13 @@ class MSetXORHash:
         :type prefix: int
         :param data: Data to be hashed.
         :type data: bytes
-        :return: The HMAC-SHA256 output as an integer in [0, :math:`2^m - 1`].
+        :return: The HMAC-BLAKE3 output as an integer in [0, :math:`2^m - 1`].
         :rtype: int
         """
         raw = hmac.new(self.key, bytes([prefix]) + data,
-                       hashlib.sha256).digest()
+                       hashlib.blake2b).digest()
         val = int.from_bytes(raw, 'big')
-        if self.m < 256:
+        if self.m < 512:
             val %= (1 << self.m)
         return val
 
@@ -161,14 +161,16 @@ class MSetAddHash:
     :vartype acc: int
     """
 
-    def __init__(self, key: bytes = None, m: int = 256):
+    def __init__(self, key: bytes = None, m: int = 512, nonce: bytes = None):
         """
         Initialize MSetAddHash.
 
         :param key: Secret key (32 bytes if None, auto-generated).
         :type key: bytes, optional
-        :param m: Bit-length for modulus :math:`2^m`, defaults to 256.
+        :param m: Bit-length for modulus :math:`2^m`, defaults to 512.
         :type m: int, optional
+        :param none: Random 16-byte nonce.
+        :type m: bytes, optional
         """
         if key is None:
             key = secrets.token_bytes(32)
@@ -176,7 +178,9 @@ class MSetAddHash:
         self.m = m
 
         # Random nonce (16 bytes)
-        self.nonce = secrets.token_bytes(16)
+        if nonce is None:
+            nonce = secrets.token_bytes(16)
+        self.nonce = nonce
 
         # Seed the accumulator with H_K(0, nonce)
         self.acc = self._H(0, self.nonce)
@@ -184,7 +188,7 @@ class MSetAddHash:
     def _H(self, prefix: int, data: bytes) -> int:
         """
         Internal PRF
-        :math:`H_K(prefix, data) = \\text{HMAC-SHA256} (key, prefix||data)`,
+        :math:`H_K(prefix, data) = \\text{HMAC-BLAKE2b} (key, prefix||data)`,
         truncated to :math:`m` bits.
 
         :param prefix: Single byte prefix (e.g., 0 or 1).
@@ -195,9 +199,9 @@ class MSetAddHash:
         :rtype: int
         """
         raw = hmac.new(self.key, bytes([prefix]) + data,
-                       hashlib.sha256).digest()
+                       hashlib.blake2b).digest()
         val = int.from_bytes(raw, 'big')
-        if self.m < 256:
+        if self.m < 512:
             val %= (1 << self.m)
         return val
 
@@ -288,14 +292,12 @@ class MSetMuHash:
     :vartype q: int
     """
 
-    def __init__(self, q: int = None, param: int = 2048):
+    def __init__(self, q: int = None):
         """
         Initialize MSetMuHash.
 
         :param q: Prime modulus. If None, a ~2048-bit prime is generated.
         :type q: int, optional
-        :param param: Bit-length of the prime if generated, defaults to 2048.
-        :type param: int, optional
         """
         self.q = q or public_q
 
@@ -305,14 +307,14 @@ class MSetMuHash:
 
         .. math::
 
-            \\text{_H}(data) = (\\text{SHA256}(data) \\mod (q-1)) + 1
+            \\text{_H}(data) = (\\text{BLAKE2b}(data) \\mod (q-1)) + 1
 
         :param data: The element to be hashed.
         :type data: bytes
         :return: An integer in :math:`[1..q-1]`.
         :rtype: int
         """
-        raw = hashlib.sha256(data).digest()
+        raw = hashlib.blake2b(data).digest()
         val = int.from_bytes(raw, 'big')
         return (val % (self.q - 1)) + 1
 
@@ -346,7 +348,7 @@ class MSetVAddHash:
         H(M) = \\sum_{b \\in M} \\bigl( M_b * H(b) \\bigr) \\mod n
 
     where :math:`H(b)` is unkeyed, such as
-    :math:`H(b) = \\text{SHA256}(b) \\mod n`.
+    :math:`H(b) = \\text{BLAKE2b}(b) \\mod n`.
 
     :var n: Modulus (e.g. :math:`2^m`).
     :vartype n: int
@@ -356,11 +358,11 @@ class MSetVAddHash:
     :vartype total_count: int
     """
 
-    def __init__(self, n: int = 2**128):
+    def __init__(self, n: int = 2**256):
         """
         Initialize MSetVAddHash.
 
-        :param n: Modulus for additions, defaults to :math:`2^{128}`.
+        :param n: Modulus for additions, defaults to :math:`2^{256}`.
         :type n: int, optional
         """
         self.n = n
@@ -373,14 +375,14 @@ class MSetVAddHash:
 
         .. math::
 
-            \\text{_H}(element) = \\text{SHA256}(element) \\mod n
+            \\text{_H}(element) = \\text{BLAKE2b}(element) \\mod n
 
         :param element: The element as bytes.
         :type element: bytes
         :return: The result in [0, n-1].
         :rtype: int
         """
-        raw = hashlib.sha256(element).digest()
+        raw = hashlib.blake2b(element).digest()
         val = int.from_bytes(raw, 'big')
         return val % self.n
 
