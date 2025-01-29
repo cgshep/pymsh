@@ -50,7 +50,7 @@ def test_empty_multiset():
     """
     hasher = MSetMuHash()
     res = hasher.hash({})
-    assert int.from_bytes(res) == 1, \
+    assert int.from_bytes(res, byteorder="big") == 1, \
         "Empty product should be 1 mod q."
 
 
@@ -82,5 +82,5 @@ def test_exponentiation_wrap():
     ms = {b'big': 10_000_000}
     # Just ensure it doesn't error and yields something in [0..q-1].
     result = hasher.hash(ms)
-    assert 0 <= int.from_bytes(result) < q, \
+    assert 0 <= int.from_bytes(result, byteorder="big") < q, \
         "Result must be within GF(q)."

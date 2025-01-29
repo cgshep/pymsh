@@ -82,7 +82,7 @@ def test_small_modulus():
     }
     digest, nonce = hasher.hash(multiset)
     # Just check it's an integer in [0, 255].
-    assert 0 <= int.from_bytes(digest) < 256, \
+    assert 0 <= int.from_bytes(digest, byteorder="big") < 256, \
         f"Digest={digest} should be in [0,255] for m=8."
 
 

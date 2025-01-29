@@ -9,7 +9,7 @@ def test_empty_multiset():
     """
     # let's pick some small n_bits=4 for demonstration
     hasher = MSetVAddHash(n_bits=4)
-    assert int.from_bytes(hasher.digest()) == 0, \
+    assert int.from_bytes(hasher.digest(), byteorder="big") == 0, \
         "Empty aggregator => sum=0 mod n."
 
 
@@ -92,7 +92,7 @@ def test_small_modulus():
     hasher.update(b'x', 100)
     # final sum must be within 0..15
     result = hasher.digest()
-    assert 0 <= int.from_bytes(result) < 16, \
+    assert 0 <= int.from_bytes(result, byteorder="big") < 16, \
         "Result must be mod 2^4."
 
 
