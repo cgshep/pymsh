@@ -100,7 +100,7 @@ class MSetXORHash:
         """
         raw = hmac.new(self.key, bytes([prefix]) + data,
                        "blake2b").digest()
-        val = int.from_bytes(raw, 'big')
+        val = int.from_bytes(raw, byteorder="big")
         if self.m < 512:
             val %= (1 << self.m)
         return val
@@ -216,7 +216,7 @@ class MSetAddHash:
         """
         raw = hmac.new(self.key, bytes([prefix]) + data,
                        "blake2b").digest()
-        val = int.from_bytes(raw, 'big')
+        val = int.from_bytes(raw, byteorder="big")
         if self.m < 512:
             val %= (1 << self.m)
         return val
@@ -344,7 +344,7 @@ class MSetMuHash:
         :rtype: int
         """
         raw = hashlib.blake2b(data).digest()
-        val = int.from_bytes(raw, 'big')
+        val = int.from_bytes(raw, byteorder="big")
         return (val % (self.q - 1)) + 1
 
     def hash(self, multiset: dict) -> bytes:
@@ -413,7 +413,7 @@ class MSetVAddHash:
         :rtype: int
         """
         raw = hashlib.blake2b(element).digest()
-        val = int.from_bytes(raw)
+        val = int.from_bytes(raw, byteorder="big")
         return val % self.n
 
     def update(self, element: bytes, multiplicity: int):
