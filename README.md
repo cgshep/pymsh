@@ -108,6 +108,7 @@ If you are using `Hasher` (`MSetAddHash`). The first element of the tuple is the
 
 ```python
 import secrets
+
 from pymsh import (
     MSetXORHash,
     MSetAddHash,
