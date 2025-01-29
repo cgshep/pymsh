@@ -27,3 +27,6 @@ classifiers = [
 [project.urls]
 "Homepage" = "https://github.com/cgshep/pymsh"
 "Issues" = "https://github.com/cgshep/pymsh/issues"
+
+[project.optional-dependencies]
+test = ["pytest", "mypy"]
