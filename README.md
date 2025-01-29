@@ -59,6 +59,8 @@ print("Multiset hash:", msh)
 
 That’s it! You’ll get a tuple representing the multiset, independent of how you ordered "apple, banana, cherry."
 
+If you are using `Hasher` (`MSetAddHash`). The first element of the tuple is the hash and the second is a nonce. If you want to reproduce the hash, like on another device, then you will need to know the nonce and the key.
+
 ## Advanced Usage
 
 `pymsh` implements multiple MSH constructions, each with its own tradeoffs in security, performance, and whether it requires a secret key. Below is a quick overview; skip to **Incremental vs. One-shot Hashing** if you don’t need these details right now.
