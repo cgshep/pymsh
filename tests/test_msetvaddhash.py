@@ -7,9 +7,10 @@ def test_empty_multiset():
     """
     With no updates, digest() should be 0, because the sum is empty.
     """
-    # let's pick some small n=1019 for demonstration
-    hasher = MSetVAddHash(n=1019)
-    assert hasher.digest() == 0, "Empty aggregator => sum=0 mod n."
+    # let's pick some small n_bits=4 for demonstration
+    hasher = MSetVAddHash(n_bits=4)
+    assert int.from_bytes(hasher.digest()) == 0, \
+        "Empty aggregator => sum=0 mod n."
 
 
 def test_incremental_vs_one_shot():
@@ -86,12 +87,13 @@ def test_small_modulus():
     Use a tiny modulus so big multiplicities wrap around.
     E.g. n=16 -> sums are mod 16
     """
-    hasher = MSetVAddHash(n=16)
+    hasher = MSetVAddHash(n_bits=4)
     # add big multiplicities
     hasher.update(b'x', 100)
     # final sum must be within 0..15
     result = hasher.digest()
-    assert 0 <= result < 16, "Result must be mod 16."
+    assert 0 <= int.from_bytes(result) < 16, \
+        "Result must be mod 2^4."
 
 
 def test_zero_update_no_op():

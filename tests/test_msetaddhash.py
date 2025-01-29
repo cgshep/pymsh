@@ -60,7 +60,8 @@ def test_empty_multiset():
     digest, nonce = hasher.hash({})
 
     # digest should be an integer, nonce is 16 random bytes
-    assert isinstance(digest, int), "Digest must be an integer."
+    assert isinstance(digest, bytes), \
+        "Digest must be bytes."
     assert isinstance(nonce, bytes) and len(nonce) == 16, \
         "Nonce must be 16 bytes."
     # We can't easily predict what H(0, nonce) will be,
@@ -81,7 +82,8 @@ def test_small_modulus():
     }
     digest, nonce = hasher.hash(multiset)
     # Just check it's an integer in [0, 255].
-    assert 0 <= digest < 256, f"Digest={digest} should be in [0,255] for m=8."
+    assert 0 <= int.from_bytes(digest) < 256, \
+        f"Digest={digest} should be in [0,255] for m=8."
 
 
 def test_consistency_between_instances():

@@ -13,6 +13,11 @@ import hashlib
 import secrets
 
 from collections import Counter
+from typing import Optional
+
+
+def _is_power_of_two(n):
+    return n > 0 and (n & (n - 1)) == 0
 
 
 def list_to_multiset(lst: list) -> dict:
@@ -48,7 +53,10 @@ class MSetXORHash:
     :vartype total_count: int
     """
 
-    def __init__(self, key: bytes = None, m: int = 512, nonce: bytes = None):
+    def __init__(self,
+                 key: Optional[bytes] = None,
+                 m: int = 512,
+                 nonce: Optional[bytes] = None):
         """
         Initialize the MSetXORHash.
 
@@ -64,6 +72,9 @@ class MSetXORHash:
             key = secrets.token_bytes(32)
 
         self.key = key
+
+        if not _is_power_of_two(m):
+            raise ValueError("m must be a power of two!")
         self.m = m
 
         if nonce is None:
@@ -84,7 +95,7 @@ class MSetXORHash:
         :type prefix: int
         :param data: Data to be hashed.
         :type data: bytes
-        :return: The HMAC-BLAKE3 output as an integer in [0, :math:`2^m - 1`].
+        :return: The HMAC-BLAKE2b output as an integer in [0, :math:`2^m - 1`].
         :rtype: int
         """
         raw = hmac.new(self.key, bytes([prefix]) + data,
@@ -122,7 +133,9 @@ class MSetXORHash:
         :return: A tuple (xor_aggregator, total_count, nonce).
         :rtype: (int, int, bytes)
         """
-        return self.xor_aggregator, self.total_count, self.nonce
+        return (self.xor_aggregator.to_bytes(self.m // 8),
+                self.total_count,
+                self.nonce)
 
     def hash(self, multiset: dict) -> tuple:
         """
@@ -161,7 +174,10 @@ class MSetAddHash:
     :vartype acc: int
     """
 
-    def __init__(self, key: bytes = None, m: int = 512, nonce: bytes = None):
+    def __init__(self,
+                 key: Optional[bytes] = None,
+                 m: int = 512,
+                 nonce: Optional[bytes] = None):
         """
         Initialize MSetAddHash.
 
@@ -228,7 +244,7 @@ class MSetAddHash:
         :return: (acc, nonce)
         :rtype: (int, bytes)
         """
-        return self.acc, self.nonce
+        return self.acc.to_bytes((self.m+7) // 8), self.nonce
 
     def hash(self, multiset: dict) -> tuple:
         """
@@ -292,14 +308,27 @@ class MSetMuHash:
     :vartype q: int
     """
 
-    def __init__(self, q: int = None):
+    def __init__(self,
+                 q: Optional[int] = None,
+                 q_bits: Optional[int] = None):
         """
         Initialize MSetMuHash.
 
-        :param q: Prime modulus. If None, a ~2048-bit prime is generated.
+        :param q: Prime modulus; if None, use public_q.
         :type q: int, optional
+        :param q_bits: Number of bits of q
+        :type q_bits: int, optional
         """
-        self.q = q or public_q
+        if q is None:
+            q = public_q
+        self.q = q
+
+        if q_bits is None:
+            q_bits = 3072
+        elif not _is_power_of_two(q_bits):
+            raise ValueError("q_bits must be a power of two!")
+
+        self.q_bits = q_bits
 
     def _H(self, data: bytes) -> int:
         """
@@ -318,7 +347,7 @@ class MSetMuHash:
         val = int.from_bytes(raw, 'big')
         return (val % (self.q - 1)) + 1
 
-    def hash(self, multiset: dict) -> int:
+    def hash(self, multiset: dict) -> bytes:
         """
         Compute the multiplicative hash of `multiset` in :math:`GF(q)`.
 
@@ -336,7 +365,7 @@ class MSetMuHash:
                 continue
             hval = self._H(elem)
             product = (product * pow(hval, count, self.q)) % self.q
-        return product
+        return product.to_bytes((self.q_bits + 7) // 8)
 
 
 class MSetVAddHash:
@@ -358,14 +387,15 @@ class MSetVAddHash:
     :vartype total_count: int
     """
 
-    def __init__(self, n: int = 2**256):
+    def __init__(self, n_bits: int = 64):
         """
-        Initialize MSetVAddHash.
+        Initialise MSetVAddHash.
 
-        :param n: Modulus for additions, defaults to :math:`2^{256}`.
-        :type n: int, optional
+        :param n_bits: Modulus for additions, defaults to :math: 64
+        :type n_bits: int, optional
         """
-        self.n = n
+        self.n_bits = n_bits
+        self.n = 2**self.n_bits
         self.acc = 0
         self.total_count = 0
 
@@ -383,7 +413,7 @@ class MSetVAddHash:
         :rtype: int
         """
         raw = hashlib.blake2b(element).digest()
-        val = int.from_bytes(raw, 'big')
+        val = int.from_bytes(raw)
         return val % self.n
 
     def update(self, element: bytes, multiplicity: int):
@@ -404,16 +434,16 @@ class MSetVAddHash:
         if self.total_count < 0:
             raise ValueError("Total count went negative — too many removes.")
 
-    def digest(self) -> int:
+    def digest(self) -> bytes:
         """
         Return the accumulated hash value (mod `n`).
 
         :return: The sum modulo `n`.
-        :rtype: int
+        :rtype: bytes
         """
-        return self.acc
+        return self.acc.to_bytes((self.n_bits + 7) // 8)
 
-    def hash(self, multiset: dict) -> int:
+    def hash(self, multiset: dict) -> bytes:
         """
         One-shot computation ignoring the current internal state.
 
@@ -429,7 +459,7 @@ class MSetVAddHash:
                 raise ValueError("Negative multiplicity not allowed.")
             hval = self._H(e)
             tmp = (tmp + (hval * m)) % self.n
-        return tmp
+        return tmp.to_bytes((self.n_bits + 7) // 8)
 
 
 #: By default, export a convenient alias.

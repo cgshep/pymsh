@@ -85,7 +85,7 @@ def test_empty_multiset():
     assert total_count == 0
     # xor_val = H_K(0, r) for an empty set
     # We cannot easily check it directly, but at least verify it's an integer
-    assert isinstance(xor_val, int)
+    assert isinstance(xor_val, bytes)
     # nonce is 16 random bytes
     assert isinstance(nonce, bytes) and len(nonce) == 16
 
@@ -93,12 +93,11 @@ def test_empty_multiset():
 def test_sum_of_multiplicities():
     """
     Ensure that the total_count is indeed the sum of
-    all multiplicities mod 2^m."""
+    all multiplicities.
+    """
     key = secrets.token_bytes(32)
-    m = 10  # small-ish so we can check wrap-around if needed
-    hasher = MSetXORHash(key, m=m)
-    # 2^m = 1024
-    # We'll add enough elements to exceed 1024 and verify wrap-around
+    hasher = MSetXORHash(key)
+
     multiset = {
         b'elem1': 500,
         b'elem2': 300,
@@ -108,9 +107,9 @@ def test_sum_of_multiplicities():
         hasher.update(elem, count)
 
     xor_val, total_count, nonce = hasher.digest()
-    expected = (500 + 300 + 300) % (1 << m)  # % 1024
+    expected = 500 + 300 + 300
     assert total_count == expected, \
-        "total_count does not match sum of multiplicities mod 2^m"
+        "total_count does not match sum of multiplicities"
 
 
 def test_hash_method():
