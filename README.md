@@ -16,9 +16,9 @@ A _multiset_ is like a set, except it can contain multiple instances of the same
 - A set might be `[apple, banana, cherry]` (with no duplicates).
 - A multiset could be `[apple, apple, apple, banana, banana, cherry]` (duplicates matter).
 
-Multiset hashing (MSH) produces a hash value that reflects both the _types_ of items you have and the _quantities_ of each item, but _not_ their order. If we hash the following using an MSH scheme, then the same hash values will be produced: `hash(apple, banana, banana, apple, apple, cherry) == hash(apple, apple, apple, banana, banana, cherry)` 
+Multiset hashing (MSH) produces a hash value that reflects both the _types_ of items you have and the _quantities_ of each item, but _not_ their order. If we hash the following using an MSH scheme, then the same hash values will be produced: `hash(apple, banana, banana, apple, apple, cherry)` will equal `hash(apple, apple, apple, banana, banana, cherry)` 
 
-We can see that the order does not matter as long as the elements and their quantities are the same.
+We can see that the _order does not matter_ as long as the _elements_ and their _quantities_ are the same.
 
 ### Why Is This Useful?
 
@@ -89,8 +89,8 @@ If you are using `Hasher` (`MSetAddHash`). The first element of the tuple is the
 <details>
 <summary><strong>MSetMuHash</strong> (Keyless, Multiset-collision Resistant)</summary>
 
-- **What it does**: Uses multiplication in a finite field (large prime modulus).
-- **Best for**: Keyless scenarios with a short output size. Good when you want collision resistance without managing keys.
+- **What it does**: Uses multiplication in a finite field with a large prime modulus.
+- **Best for**: Keyless scenarios. Good when you want collision resistance without managing keys.
 - **Supports incremental hashing?**: No.
 - **Uses a secret key**: No.
 </details>
@@ -165,7 +165,9 @@ print("VAdd Hash:", vadd_hasher.hash(multiset))
 
 For most **general-purpose** tasks, use **MSetAddHash** (the default `Hasher`).
 
-If you prefer **keyless** usage or want a smaller output size, consider **MSetMuHash**. However, if you need **incremental** and **keyless**, try **MSetVAddHash**. Here's a comparison table:
+If you prefer **keyless** usage without the **incremental** feature, then consider **MSetMuHash**.
+
+However, if you need **incremental** and **keyless**, try **MSetVAddHash**. Here's a comparison table:
 
 | Hash Type       | Security          | Key Required | Incremental | Notes                        |
 |-----------------|-------------------|--------------|-------------|------------------------------|
@@ -178,9 +180,6 @@ If you prefer **keyless** usage or want a smaller output size, consider **MSetMu
 ## References
 
 1. D. Clarke, S. Devadas, M. van Dijk, B. Gassend, and G.E. Suh. [“Incremental Multiset Hash Functions and Their Application to Memory Integrity Checking,”](https://www.iacr.org/cryptodb/data/paper.php?pubkey=151) ASIACRYPT 2003.
-
-## Note
-This project has not been audited or verified; do not rely on this library for serious production systems.
 
 ## Contribute
 
