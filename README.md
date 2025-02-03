@@ -89,7 +89,7 @@ If you are using `Hasher` (`MSetAddHash`). The first element of the tuple is the
 <details>
 <summary><strong>MSetMuHash</strong> (Keyless, Multiset-collision Resistant)</summary>
 
-- **What it does**: Uses multiplication in a finite field with a large prime modulus.
+- **What it does**: Uses multiplication in a finite field with a large prime modulus. Slow.
 - **Best for**: Keyless scenarios. Good when you want collision resistance without managing keys.
 - **Supports incremental hashing?**: No.
 - **Uses a secret key**: No.
@@ -173,7 +173,7 @@ However, if you need **incremental** and **keyless**, try **MSetVAddHash**. Here
 |-----------------|-------------------|--------------|-------------|------------------------------|
 | `MSetXORHash`   | Set-collision resistance    | Yes          | Yes         | Fast set verification        |
 | `MSetAddHash`   | Multiset-collision resistance | Yes          | Yes         | General purpose              |
-| `MSetMuHash`    | Multiset-collision| No           | No          | Keyless; short outputs       |
+| `MSetMuHash`    | Multiset-collision| No           | No          | Keyless; not efficient       |
 | `MSetVAddHash`  | Multiset-collision| No           | Yes         | Efficient, but longer hashes |
 
 
