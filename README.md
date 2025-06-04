@@ -57,9 +57,7 @@ msh = Hasher().hash(multiset)
 print("Multiset hash:", msh)
 ```
 
-That’s it! You’ll get a tuple representing the multiset, independent of how you ordered "apple, banana, cherry."
-
-If you are using `Hasher` (`MSetAddHash`). The first element of the tuple is the hash and the second is a nonce. If you want to reproduce the hash, like on another device, then you will need to know the nonce and the key.
+That’s it! You’ll get a tuple representing the multiset, independent of how you ordered "apple, banana, cherry."  The first element of the tuple is the hash and the second is a nonce. If you want to reproduce the hash, like on another device, then you will need to know the nonce and the key. The key can be accessed using `msh.key` in the above example (along with `msh[1]` for the nonce).
 
 ## Advanced Usage
 
