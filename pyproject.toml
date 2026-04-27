@@ -13,10 +13,15 @@ keywords = ["hashing", "hash", "cryptography", "multi-set", "multiset", "crypto"
 description = "The Python multiset hashing library"
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Intended Audience :: Developers",
@@ -26,7 +31,31 @@ classifiers = [
 
 [project.urls]
 "Homepage" = "https://github.com/cgshep/pymsh"
+"Repository" = "https://github.com/cgshep/pymsh"
 "Issues" = "https://github.com/cgshep/pymsh/issues"
+"Changelog" = "https://github.com/cgshep/pymsh/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
-test = ["pytest", "mypy"]
+test = ["pytest", "pytest-cov", "mypy"]
+
+[tool.hatch.build.targets.wheel]
+include = ["pymsh.py"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "pymsh.py",
+    "README.md",
+    "LICENSE.md",
+    "CHANGELOG.md",
+    "tests/",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.mypy]
+files = ["pymsh.py"]
+strict_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
