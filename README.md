@@ -176,6 +176,81 @@ However, if you need **incremental** and **keyless**, try **MSetVAddHash**. Here
 | `MSetVAddHash`  | Multiset-collision| No           | Yes         | Efficient, but longer hashes |
 
 
+## When Would I Use This?
+
+Anywhere you have a *collection of things where order doesn't matter* and you
+want a single small fingerprint of it. A normal hash like SHA-256 changes the
+moment you reorder the input; a multiset hash doesn't.
+
+### 1. Verify two SQL queries return the same rows
+
+A `SELECT` without an `ORDER BY` makes no promise about the row order, and
+result sets can contain duplicates — so a Python `set()` would silently lose
+information. Hash the multiset of rows on each side and compare two small
+fingerprints instead.
+
+```python
+import json
+from pymsh import MSetMuHash, list_to_multiset
+
+result_a = [(1, "alice"), (2, "bob"), (1, "alice"), (3, "carol")]
+result_b = [(3, "carol"), (1, "alice"), (2, "bob"), (1, "alice")]   # same rows, reshuffled
+
+def fingerprint(rows):
+    serialised = [json.dumps(row).encode() for row in rows]
+    return MSetMuHash().hash(list_to_multiset(serialised))
+
+assert fingerprint(result_a) == fingerprint(result_b)
+```
+
+Bread-and-butter use cases: checking that a refactored query returns the
+same rows as the original, or sanity-checking that two database replicas
+agree on a table's contents without scanning row-by-row. Drop one of the
+duplicate `(1, "alice")` rows and the fingerprint changes — multiplicities
+are preserved, unlike with a plain `set()`.
+
+### 2. "Do these two documents use the same words?"
+
+A bag-of-words fingerprint. Two pieces of text that contain the same words
+at the same frequencies — even if the words are scrambled — get the same
+fingerprint.
+
+```python
+from pymsh import MSetMuHash, list_to_multiset
+
+doc_a = "the cat sat on the mat".split()
+doc_b = "mat the on sat the cat".split()         # same words, scrambled
+
+h = MSetMuHash()
+fp_a = h.hash(list_to_multiset([w.encode() for w in doc_a]))
+fp_b = h.hash(list_to_multiset([w.encode() for w in doc_b]))
+assert fp_a == fp_b
+```
+
+Useful for spotting duplicate or near-duplicate text without storing the
+original words, and for cheap plagiarism / dedup pre-filters.
+
+### 3. Keep a running fingerprint as data streams in
+
+When you don't have the whole collection up front — you're consuming items
+one at a time — you can keep a running fingerprint and ask for it whenever
+you need it. The result is the same as if you'd had the whole collection
+at once.
+
+```python
+from pymsh import MSetVAddHash
+
+running = MSetVAddHash()
+for word in "the cat sat on the mat".split():
+    running.update(word.encode(), 1)             # one item at a time
+
+print(running.digest().hex())                    # final fingerprint
+```
+
+This is what makes multiset hashes interesting for things like inventory
+counters, log fingerprints, or any "running tally" where you don't want
+to re-hash everything from scratch each time something changes.
+
 ## References
 
 1. D. Clarke, S. Devadas, M. van Dijk, B. Gassend, and G.E. Suh. [“Incremental Multiset Hash Functions and Their Application to Memory Integrity Checking,”](https://www.iacr.org/cryptodb/data/paper.php?pubkey=151) ASIACRYPT 2003.
