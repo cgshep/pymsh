@@ -176,86 +176,71 @@ However, if you need **incremental** and **keyless**, try **MSetVAddHash**. Here
 | `MSetVAddHash`  | Multiset-collision| No           | Yes         | Efficient, but longer hashes |
 
 
-## Real-world Recipes
+## When Would I Use This?
 
-Three small, runnable recipes that show what multiset hashing is good for in
-practice.
+Anywhere you have a *collection of things where order doesn't matter* and you
+want a single small fingerprint of it. A normal hash like SHA-256 changes the
+moment you reorder the input; a multiset hash doesn't.
 
-### 1. Verify a sharded download (chunks arrive out of order)
+### 1. Compare two shopping carts
 
-A large file is split into chunks and shipped over the network — peer-to-peer,
-parallel ranges, etc. Receivers reassemble in arbitrary order and want a
-single fingerprint that confirms they have *exactly* the right chunks, no
-duplicates and no extras, before stitching the file back together.
-
-```python
-import hashlib
-from pymsh import MSetVAddHash, list_to_multiset
-
-# Sender publishes one fingerprint alongside the manifest:
-chunks = split_into_chunks(big_file)                       # any order
-chunk_hashes = [hashlib.sha256(c).digest() for c in chunks]
-fingerprint = MSetVAddHash(n_bits=256).hash(list_to_multiset(chunk_hashes))
-
-# Receiver builds the same fingerprint incrementally as chunks land:
-receiver = MSetVAddHash(n_bits=256)
-for chunk in chunks_as_they_arrive():           # any order
-    receiver.update(hashlib.sha256(chunk).digest(), 1)
-
-assert receiver.digest() == fingerprint
-```
-
-### 2. Reconcile two caches in O(1)
-
-Two replicas each maintain a running multiset hash of their cache contents.
-Comparing the two digests is a single byte-string comparison and tells you
-instantly whether the replicas are in sync — without iterating either cache.
+Two carts contain the same items in different orders. A regular hash sees
+them as different; a multiset hash sees them as the same.
 
 ```python
-import secrets
-from pymsh import MSetAddHash
+from pymsh import MSetMuHash
 
-shared_key = secrets.token_bytes(32)        # both replicas share this
-shared_nonce = b"\x00" * 16                 # and this
+cart_a = {b"apple": 3, b"bread": 1, b"milk": 2}
+cart_b = {b"milk": 2, b"bread": 1, b"apple": 3}   # same items, listed differently
 
-class FingerprintedCache:
-    def __init__(self):
-        self._h = MSetAddHash(shared_key, nonce=shared_nonce)
-        self._items = {}
-
-    def put(self, key: bytes, value: bytes) -> None:
-        self._items[key] = value
-        self._h.update(key, 1)              # O(1) per write
-
-    def fingerprint(self) -> bytes:
-        return self._h.digest()[0]          # 64 bytes
-
-# Anywhere in the cluster:
-if replica_a.fingerprint() == replica_b.fingerprint():
-    ...   # caches agree on the multiset of keys; no reconciliation needed
+h = MSetMuHash()
+assert h.hash(cart_a) == h.hash(cart_b)           # same fingerprint
 ```
 
-### 3. Stream a commitment over an event log
+If a customer adds an extra apple, the fingerprint changes — multiplicities
+matter, not order.
 
-A service ingests millions of events and wants a single small commitment to
-the *exact* set of events it has seen, with no buffering. An auditor can
-later replay a claimed log — in any order — to verify it matches.
+### 2. "Do these two documents use the same words?"
+
+A bag-of-words fingerprint. Two pieces of text that contain the same words
+at the same frequencies — even if the words are scrambled — get the same
+fingerprint.
+
+```python
+from pymsh import MSetMuHash, list_to_multiset
+
+doc_a = "the cat sat on the mat".split()
+doc_b = "mat the on sat the cat".split()         # same words, scrambled
+
+h = MSetMuHash()
+fp_a = h.hash(list_to_multiset([w.encode() for w in doc_a]))
+fp_b = h.hash(list_to_multiset([w.encode() for w in doc_b]))
+assert fp_a == fp_b
+```
+
+Useful for spotting duplicate or near-duplicate text without storing the
+original words, and for cheap plagiarism / dedup pre-filters.
+
+### 3. Keep a running fingerprint as data streams in
+
+When you don't have the whole collection up front — you're consuming items
+one at a time — you can keep a running fingerprint and ask for it whenever
+you need it. The result is the same as if you'd had the whole collection
+at once.
 
 ```python
 from pymsh import MSetVAddHash
 
-hasher = MSetVAddHash(n_bits=512)
-for event in event_stream():               # streaming; constant memory
-    hasher.update(event.id, 1)
+running = MSetVAddHash()
+for word in "the cat sat on the mat".split():
+    running.update(word.encode(), 1)             # one item at a time
 
-commitment = hasher.digest()               # publish/sign this
-
-# Auditor side, later:
-audit = MSetVAddHash(n_bits=512)
-for event in claimed_log:                  # order doesn't matter
-    audit.update(event.id, 1)
-assert audit.digest() == commitment
+print(running.digest().hex())                    # final fingerprint
 ```
+
+This is what makes multiset hashes interesting for things like inventory
+counters, log fingerprints, or any "running tally" where you don't want
+to re-hash everything from scratch each time something changes.
 
 ## References
 
