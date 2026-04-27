@@ -68,6 +68,13 @@ def test_negative_multiplicity_raises():
         hasher.update(b'something', -2)
 
 
+@pytest.mark.parametrize("bad_m", [0, -1, 3, 100, 1024])
+def test_invalid_m_rejected(bad_m):
+    """m must be a positive power-of-two no greater than 512."""
+    with pytest.raises(ValueError):
+        MSetXORHash(secrets.token_bytes(32), m=bad_m)
+
+
 def test_empty_multiset():
     """
     Hashing an empty multiset is just H_K(0, r) in the XOR part,

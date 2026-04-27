@@ -84,3 +84,25 @@ def test_exponentiation_wrap():
     result = hasher.hash(ms)
     assert 0 <= int.from_bytes(result, byteorder="big") < q, \
         "Result must be within GF(q)."
+
+
+def test_q_bits_derived_from_q():
+    """When q_bits is omitted, it must default to q.bit_length()."""
+    # 1019 fits in 10 bits, so digest is ceil(10/8) == 2 bytes.
+    hasher = MSetMuHash(q=1019)
+    digest = hasher.hash({b'x': 1})
+    assert len(digest) == 2
+
+
+def test_q_bits_too_small_rejected():
+    """q_bits smaller than q.bit_length() must raise."""
+    with pytest.raises(ValueError):
+        MSetMuHash(q=1019, q_bits=4)
+
+
+def test_q_bits_non_power_of_two_accepted():
+    """A non-power-of-two q_bits must be accepted (regression)."""
+    # 3000 isn't a power of two, but it's a legal bit length.
+    hasher = MSetMuHash(q=1019, q_bits=3000)
+    digest = hasher.hash({b'x': 1})
+    assert len(digest) == (3000 + 7) // 8

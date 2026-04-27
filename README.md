@@ -53,11 +53,12 @@ multiset = list_to_multiset(fruit_list)
 # => {b"apple": 3, b"banana": 2, b"cherry": 1}
 
 # 2) Hash your multiset (Hasher is an alias for MSetAddHash)
-msh = Hasher().hash(multiset)
-print("Multiset hash:", msh)
+hasher = Hasher()
+digest, nonce = hasher.hash(multiset)
+print("Multiset hash:", digest.hex(), "nonce:", nonce.hex())
 ```
 
-That’s it! You’ll get a tuple representing the multiset, independent of how you ordered "apple, banana, cherry."  The first element of the tuple is the hash and the second is a nonce. If you want to reproduce the hash, like on another device, then you will need to know the nonce and the key. The key can be accessed using `msh.key` in the above example (along with `msh[1]` for the nonce).
+That's it! You get a `(digest, nonce)` tuple representing the multiset, independent of how you ordered "apple, banana, cherry." To reproduce the hash on another device you need the **key** (`hasher.key`) and the **nonce** (the second tuple element). Both must be passed back to `MSetAddHash(key=..., nonce=...)` to obtain the same digest.
 
 ## Advanced Usage
 
@@ -178,6 +179,19 @@ However, if you need **incremental** and **keyless**, try **MSetVAddHash**. Here
 ## References
 
 1. D. Clarke, S. Devadas, M. van Dijk, B. Gassend, and G.E. Suh. [“Incremental Multiset Hash Functions and Their Application to Memory Integrity Checking,”](https://www.iacr.org/cryptodb/data/paper.php?pubkey=151) ASIACRYPT 2003.
+
+## Development
+
+Clone the repo and install the test extras:
+
+```bash
+pip install -e ".[test]"
+pytest                  # run the test suite
+mypy pymsh.py           # type-check
+```
+
+A wheel and sdist can be built with `python -m build` (requires the
+[`build`](https://pypi.org/project/build/) package).
 
 ## Contribute
 

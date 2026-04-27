@@ -108,3 +108,10 @@ def test_zero_update_no_op():
     sum_after = hasher.digest()
     assert sum_before == sum_after, \
         "Updating with multiplicity=0 must do nothing."
+
+
+@pytest.mark.parametrize("bad_n", [0, -1])
+def test_invalid_n_bits_rejected(bad_n):
+    """n_bits must be a positive integer."""
+    with pytest.raises(ValueError):
+        MSetVAddHash(n_bits=bad_n)

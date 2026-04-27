@@ -1,77 +1,77 @@
+"""Cross-cutting properties shared by every multiset hash in pymsh.
+
+These are the fundamental guarantees a multiset hash must offer:
+empty equals empty, identical multisets hash identically, distinct
+multisets hash differently with overwhelming probability, and
+order is irrelevant to the result.
+"""
+import secrets
+
 import pytest
 
-from pymsh.xormsh import XORMSH
-from utils import map_str_bytes
+from pymsh import (
+    MSetAddHash,
+    MSetMuHash,
+    MSetVAddHash,
+    MSetXORHash,
+    list_to_multiset,
+)
 
-@pytest.mark.parametrize("msh_class", [XORMSH])
-class TestBasic:
-    v1 = map_str_bytes(["apple", "banana", "cranberry", "date"])
-    def test_basic_equiv(self, msh_class):
-        msh = msh_class()
-        v2 = self.v1
-        h1 = msh.hash(self.v1)
-        msh.reset()
-        h2 = msh.hash(v2)
-        msh.reset()
-        assert h1 == h2
 
-    def test_basic_empty(self, msh_class):
-        msh = msh_class()
-        v2 = v3 = []
-        h1 = msh.hash(v2)
-        msh.reset()
-        h2 = msh.hash(v3)
-        msh.reset()
-        # MSH([]) == MSH([])
-        assert h1 == h2
+def _stable_xor():
+    return MSetXORHash(key=b"\x00" * 32, m=256, nonce=b"\x00" * 16)
 
-    def test_basic_one_empty(self, msh_class):
-        msh = msh_class()
-        v2 = []
-        h1 = msh.hash(self.v1)
-        msh.reset()
-        h2 = msh.hash(v2)
-        msh.reset()
-        assert h1 != h2
 
-    def test_basic_reordered(self, msh_class):
-        v2 = map_str_bytes(["date", "banana", "cranberry", "apple"])
-        msh = XORMSH()
-        h1 = msh.hash(self.v1)
-        msh.reset()
-        h2 = msh.hash(v2)
-        msh.reset()
-        assert h1 == h2
+def _stable_add():
+    return MSetAddHash(key=b"\x00" * 32, m=256, nonce=b"\x00" * 16)
 
-    def test_xormsh_update(self, msh_class):
-        v2 = []
-        msh = msh_class()
-        h1 = msh.hash(self.v1)
-        msh.reset()
-        h2 = msh.hash(v2)
-        msh.update(b"date")
-        msh.update(b"banana")
-        msh.update(b"cranberry")
-        h2 = msh.update(b"apple")
-        msh.reset()
-        assert h1 == h2
 
-    def test_basic_two_update(self, msh_class):
-        """
-        Testing two empty inputs; the hashes are updated
-        using the same elements in different orders.
-        """
-        msh = msh_class()
-        h1 = msh.hash([])
-        msh.update(b"apple")
-        msh.update(b"date")
-        msh.update(b"cranberry")
-        h1 = msh.update(b"banana")
-        msh.reset()
-        h2 = msh.hash([])
-        msh.update(b"date")
-        msh.update(b"banana")
-        msh.update(b"cranberry")
-        h2 = msh.update(b"apple")
-        msh.reset()
-        assert h1 == h2
+@pytest.fixture(
+    params=[
+        pytest.param(_stable_xor, id="MSetXORHash"),
+        pytest.param(_stable_add, id="MSetAddHash"),
+        pytest.param(MSetMuHash, id="MSetMuHash"),
+        pytest.param(MSetVAddHash, id="MSetVAddHash"),
+    ]
+)
+def hasher_factory(request):
+    return request.param
+
+
+def test_same_multiset_same_hash(hasher_factory):
+    multiset = {b"apple": 3, b"banana": 2, b"cherry": 1}
+    assert hasher_factory().hash(multiset) == hasher_factory().hash(multiset)
+
+
+def test_empty_equals_empty(hasher_factory):
+    assert hasher_factory().hash({}) == hasher_factory().hash({})
+
+
+def test_empty_differs_from_non_empty(hasher_factory):
+    multiset = {b"apple": 3, b"banana": 2, b"cherry": 1}
+    assert hasher_factory().hash(multiset) != hasher_factory().hash({})
+
+
+def test_order_irrelevant(hasher_factory):
+    forward = list_to_multiset([b"apple", b"banana", b"cranberry", b"date"])
+    reverse = list_to_multiset([b"date", b"cranberry", b"banana", b"apple"])
+    assert hasher_factory().hash(forward) == hasher_factory().hash(reverse)
+
+
+def test_different_counts_different_hash(hasher_factory):
+    a = {b"apple": 1, b"banana": 2}
+    b = {b"apple": 2, b"banana": 1}
+    assert hasher_factory().hash(a) != hasher_factory().hash(b)
+
+
+def test_list_to_multiset_roundtrip():
+    items = [b"apple", b"apple", b"banana", b"cherry", b"banana", b"apple"]
+    assert list_to_multiset(items) == {b"apple": 3, b"banana": 2, b"cherry": 1}
+
+
+def test_keyed_hashes_differ_under_distinct_keys():
+    """Independently-keyed instances must not collide for the same input."""
+    multiset = {b"apple": 3, b"banana": 2}
+    h1 = MSetXORHash(key=secrets.token_bytes(32), m=256)
+    h2 = MSetXORHash(key=secrets.token_bytes(32), m=256)
+    assert h1.hash(multiset) != h2.hash(multiset)

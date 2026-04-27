@@ -50,6 +50,20 @@ def test_negative_multiplicity():
         hasher.hash({b'bad': -1})  # Should raise an error
 
 
+def test_negative_multiplicity_update_raises():
+    """update() with a negative multiplicity must also raise."""
+    hasher = MSetAddHash(secrets.token_bytes(32), m=256)
+    with pytest.raises(ValueError):
+        hasher.update(b'bad', -1)
+
+
+@pytest.mark.parametrize("bad_m", [0, -1, 3, 100, 1024])
+def test_invalid_m_rejected(bad_m):
+    """m must be a positive power-of-two no greater than 512."""
+    with pytest.raises(ValueError):
+        MSetAddHash(secrets.token_bytes(32), m=bad_m)
+
+
 def test_empty_multiset():
     """
     Hashing an empty multiset should just be H(0, nonce) mod 2^m,

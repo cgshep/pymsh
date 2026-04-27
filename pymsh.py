@@ -8,16 +8,41 @@ Each class implements a different multiset hash scheme:
 3. MSetMuHash   : Multiplicative hash over a prime field GF(q).
 4. MSetVAddHash : Unkeyed, integer addition-based hash mod n.
 """
-import hmac
 import hashlib
+import hmac
 import secrets
 
 from collections import Counter
-from typing import Optional
+from typing import Optional, Tuple
+
+__all__ = [
+    "Hasher",
+    "MSetAddHash",
+    "MSetMuHash",
+    "MSetVAddHash",
+    "MSetXORHash",
+    "list_to_multiset",
+]
+
+# BLAKE2b produces 64 bytes (512 bits). We refuse to silently zero-pad past
+# the PRF's output size, since doing so would inflate the digest without
+# adding entropy.
+_BLAKE2B_BITS = 512
 
 
-def _is_power_of_two(n):
+def _is_power_of_two(n: int) -> bool:
     return n > 0 and (n & (n - 1)) == 0
+
+
+def _validate_m(m: int) -> None:
+    if not isinstance(m, int) or m <= 0:
+        raise ValueError("m must be a positive integer.")
+    if not _is_power_of_two(m):
+        raise ValueError("m must be a power of two.")
+    if m > _BLAKE2B_BITS:
+        raise ValueError(
+            f"m must be <= {_BLAKE2B_BITS} (BLAKE2b output size)."
+        )
 
 
 def list_to_multiset(lst: list) -> dict:
@@ -31,8 +56,8 @@ def list_to_multiset(lst: list) -> dict:
 
     .. code-block:: python
 
-       >>> list_to_multiset(["apple", "banana", "apple"])
-       {'apple': 2, 'banana': 1}
+       >>> list_to_multiset([b"apple", b"banana", b"apple"])
+       {b'apple': 2, b'banana': 1}
     """
     return dict(Counter(lst))
 
@@ -63,19 +88,18 @@ class MSetXORHash:
         :param key: The HMAC secret key. If None, a 32-byte key is generated.
         :type key: bytes, optional
         :param m: The number of bits for truncation and mod-sum of
-                  multiplicities, defaults=512
+                  multiplicities, defaults=512. Must be a power of two
+                  in (0, 512].
         :type m: int, optional
         :param nonce: Random nonce; if None, a 16-byte one is generated.
         :type nonce: bytes, optional
         """
+        _validate_m(m)
+        self.m = m
+
         if key is None:
             key = secrets.token_bytes(32)
-
         self.key = key
-
-        if not _is_power_of_two(m):
-            raise ValueError("m must be a power of two!")
-        self.m = m
 
         if nonce is None:
             nonce = secrets.token_bytes(16)
@@ -101,11 +125,11 @@ class MSetXORHash:
         raw = hmac.new(self.key, bytes([prefix]) + data,
                        "blake2b").digest()
         val = int.from_bytes(raw, byteorder="big")
-        if self.m < 512:
+        if self.m < _BLAKE2B_BITS:
             val %= (1 << self.m)
         return val
 
-    def update(self, element: bytes, multiplicity: int = 1):
+    def update(self, element: bytes, multiplicity: int = 1) -> None:
         """
         Incrementally update the hash with `multiplicity` copies of `element`.
 
@@ -126,26 +150,26 @@ class MSetXORHash:
         # Update total_count mod 2^m
         self.total_count = (self.total_count + multiplicity) % (1 << self.m)
 
-    def digest(self) -> tuple:
+    def digest(self) -> Tuple[bytes, int, bytes]:
         """
         Produce the current digest.
 
-        :return: A tuple (xor_aggregator, total_count, nonce).
-        :rtype: (int, int, bytes)
+        :return: A tuple (xor_aggregator_bytes, total_count, nonce).
+        :rtype: tuple[bytes, int, bytes]
         """
         return (self.xor_aggregator.to_bytes(self.m // 8, byteorder="big"),
                 self.total_count,
                 self.nonce)
 
-    def hash(self, multiset: dict) -> tuple:
+    def hash(self, multiset: dict) -> Tuple[bytes, int, bytes]:
         """
         One-shot computation of the MSet-XOR-Hash for `multiset`,
         ignoring current state.
 
         :param multiset: A dict mapping elements to their multiplicities.
         :type multiset: dict[bytes, int]
-        :return: The computed hash tuple (xor_aggregator, total_count, nonce).
-        :rtype: (int, int, bytes)
+        :return: The computed hash tuple (xor_aggregator_bytes, total_count, nonce).
+        :rtype: tuple[bytes, int, bytes]
         """
         temp = MSetXORHash(self.key, self.m, nonce=self.nonce)
         for elem, mult in multiset.items():
@@ -184,16 +208,18 @@ class MSetAddHash:
         :param key: Secret key (32 bytes if None, auto-generated).
         :type key: bytes, optional
         :param m: Bit-length for modulus :math:`2^m`, defaults to 512.
+                  Must be a power of two in (0, 512].
         :type m: int, optional
-        :param none: Random 16-byte nonce.
-        :type m: bytes, optional
+        :param nonce: Random 16-byte nonce; auto-generated if None.
+        :type nonce: bytes, optional
         """
+        _validate_m(m)
+        self.m = m
+
         if key is None:
             key = secrets.token_bytes(32)
         self.key = key
-        self.m = m
 
-        # Random nonce (16 bytes)
         if nonce is None:
             nonce = secrets.token_bytes(16)
         self.nonce = nonce
@@ -217,19 +243,23 @@ class MSetAddHash:
         raw = hmac.new(self.key, bytes([prefix]) + data,
                        "blake2b").digest()
         val = int.from_bytes(raw, byteorder="big")
-        if self.m < 512:
+        if self.m < _BLAKE2B_BITS:
             val %= (1 << self.m)
         return val
 
-    def update(self, element: bytes, multiplicity: int = 1):
+    def update(self, element: bytes, multiplicity: int = 1) -> None:
         """
         Incrementally add `multiplicity` copies of `element`.
 
         :param element: The element (byte string).
         :type element: bytes
         :param multiplicity: How many times to add this element.
+                             Must be non-negative.
         :type multiplicity: int
+        :raises ValueError: If `multiplicity` is negative.
         """
+        if multiplicity < 0:
+            raise ValueError("Multiplicity cannot be negative.")
         if multiplicity == 0:
             return
 
@@ -237,35 +267,28 @@ class MSetAddHash:
         delta = (h_elem * multiplicity) % (1 << self.m)
         self.acc = (self.acc + delta) % (1 << self.m)
 
-    def digest(self) -> tuple:
+    def digest(self) -> Tuple[bytes, bytes]:
         """
         Return the current hash state and nonce.
 
-        :return: (acc, nonce)
-        :rtype: (int, bytes)
+        :return: (acc_bytes, nonce)
+        :rtype: tuple[bytes, bytes]
         """
-        return self.acc.to_bytes((self.m+7) // 8, byteorder="big"), self.nonce
+        return self.acc.to_bytes((self.m + 7) // 8, byteorder="big"), self.nonce
 
-    def hash(self, multiset: dict) -> tuple:
+    def hash(self, multiset: dict) -> Tuple[bytes, bytes]:
         """
         One-shot hash of a multiset, ignoring the current incremental state.
 
         :param multiset: A dictionary mapping elements to multiplicities.
         :type multiset: dict[bytes, int]
-        :return: (sum_mod_2m, nonce)
-        :rtype: (int, bytes)
+        :return: (acc_bytes, nonce)
+        :rtype: tuple[bytes, bytes]
         :raises ValueError: If any multiplicity is negative.
         """
-        temp = MSetAddHash(self.key, self.m)
-        temp.nonce = self.nonce
-        temp.acc = temp._H(0, temp.nonce)
-
+        temp = MSetAddHash(self.key, self.m, nonce=self.nonce)
         for elem, mult in multiset.items():
-            if mult < 0:
-                raise ValueError(
-                    f"Negative multiplicity: {mult} for element {elem}")
             temp.update(elem, mult)
-
         return temp.digest()
 
 
@@ -314,20 +337,24 @@ class MSetMuHash:
         """
         Initialize MSetMuHash.
 
-        :param q: Prime modulus; if None, use public_q.
+        :param q: Prime modulus; if None, use the built-in 3072-bit prime.
         :type q: int, optional
-        :param q_bits: Number of bits of q
+        :param q_bits: Bit-length of `q`. If None, it is derived from `q`.
+                       Must be at least as large as `q.bit_length()`.
         :type q_bits: int, optional
         """
         if q is None:
             q = public_q
+        if q < 3:
+            raise ValueError("q must be a prime >= 3.")
         self.q = q
 
         if q_bits is None:
-            q_bits = 3072
-        elif not _is_power_of_two(q_bits):
-            raise ValueError("q_bits must be a power of two!")
-
+            q_bits = q.bit_length()
+        elif not isinstance(q_bits, int) or q_bits < q.bit_length():
+            raise ValueError(
+                "q_bits must be an integer >= q.bit_length()."
+            )
         self.q_bits = q_bits
 
     def _H(self, data: bytes) -> int:
@@ -353,8 +380,10 @@ class MSetMuHash:
 
         :param multiset: Dict mapping elements to their multiplicities.
         :type multiset: dict[bytes, int]
-        :return: The product of :math:`H(elem)^{count}` modulo :math:`q`.
-        :rtype: int
+        :return: The product of :math:`H(elem)^{count}` modulo :math:`q`,
+                 encoded as a big-endian byte string of length
+                 ``(q_bits + 7) // 8``.
+        :rtype: bytes
         :raises ValueError: If any multiplicity is negative.
         """
         product = 1
@@ -391,11 +420,14 @@ class MSetVAddHash:
         """
         Initialise MSetVAddHash.
 
-        :param n_bits: Modulus for additions, defaults to :math: 64
+        :param n_bits: Bit-length of the modulus :math:`n = 2^{n\\_bits}`,
+                       defaults to 64. Must be a positive integer.
         :type n_bits: int, optional
         """
+        if not isinstance(n_bits, int) or n_bits <= 0:
+            raise ValueError("n_bits must be a positive integer.")
         self.n_bits = n_bits
-        self.n = 2**self.n_bits
+        self.n = 1 << n_bits
         self.acc = 0
         self.total_count = 0
 
@@ -416,7 +448,7 @@ class MSetVAddHash:
         val = int.from_bytes(raw, byteorder="big")
         return val % self.n
 
-    def update(self, element: bytes, multiplicity: int):
+    def update(self, element: bytes, multiplicity: int) -> None:
         """
         Incrementally add `multiplicity` copies of `element`.
 
@@ -438,7 +470,8 @@ class MSetVAddHash:
         """
         Return the accumulated hash value (mod `n`).
 
-        :return: The sum modulo `n`.
+        :return: The sum modulo `n`, big-endian-encoded to ``(n_bits + 7) // 8``
+                 bytes.
         :rtype: bytes
         """
         return self.acc.to_bytes((self.n_bits + 7) // 8, byteorder="big")
@@ -449,8 +482,9 @@ class MSetVAddHash:
 
         :param multiset: Dictionary mapping elements to multiplicities.
         :type multiset: dict[bytes, int]
-        :return: Sum of `multiplicity * H(element)` mod n.
-        :rtype: int
+        :return: Sum of `multiplicity * H(element)` mod n, encoded as
+                 ``(n_bits + 7) // 8`` big-endian bytes.
+        :rtype: bytes
         :raises ValueError: If a negative multiplicity is encountered.
         """
         tmp = 0
