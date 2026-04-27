@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-04-27
+
 ### Added
 - `CITATION.cff` so academic users can cite the library directly from GitHub's
   "Cite this repository" button, alongside the underlying ASIACRYPT 2003 paper.

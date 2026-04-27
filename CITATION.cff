@@ -14,7 +14,7 @@ authors:
     email: carlton@linux.com
 repository-code: "https://github.com/cgshep/pymsh"
 url: "https://github.com/cgshep/pymsh"
-version: "1.2.1"
+version: "1.2.3"
 keywords:
   - cryptography
   - multiset hashing
