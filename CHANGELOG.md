@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `CITATION.cff` so academic users can cite the library directly from GitHub's
+  "Cite this repository" button, alongside the underlying ASIACRYPT 2003 paper.
+- A "Real-world Recipes" section in the README with three runnable examples
+  (sharded download verification, O(1) cache reconciliation, streaming event
+  commitment) that show *when* multiset hashing is the right tool.
 - `__all__` to the public module so `from pymsh import *` exposes only the
   documented API.
 - Validation of `m` in `MSetAddHash` (must be a positive power of two,

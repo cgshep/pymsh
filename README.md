@@ -176,6 +176,87 @@ However, if you need **incremental** and **keyless**, try **MSetVAddHash**. Here
 | `MSetVAddHash`  | Multiset-collision| No           | Yes         | Efficient, but longer hashes |
 
 
+## Real-world Recipes
+
+Three small, runnable recipes that show what multiset hashing is good for in
+practice.
+
+### 1. Verify a sharded download (chunks arrive out of order)
+
+A large file is split into chunks and shipped over the network — peer-to-peer,
+parallel ranges, etc. Receivers reassemble in arbitrary order and want a
+single fingerprint that confirms they have *exactly* the right chunks, no
+duplicates and no extras, before stitching the file back together.
+
+```python
+import hashlib
+from pymsh import MSetVAddHash, list_to_multiset
+
+# Sender publishes one fingerprint alongside the manifest:
+chunks = split_into_chunks(big_file)                       # any order
+chunk_hashes = [hashlib.sha256(c).digest() for c in chunks]
+fingerprint = MSetVAddHash(n_bits=256).hash(list_to_multiset(chunk_hashes))
+
+# Receiver builds the same fingerprint incrementally as chunks land:
+receiver = MSetVAddHash(n_bits=256)
+for chunk in chunks_as_they_arrive():           # any order
+    receiver.update(hashlib.sha256(chunk).digest(), 1)
+
+assert receiver.digest() == fingerprint
+```
+
+### 2. Reconcile two caches in O(1)
+
+Two replicas each maintain a running multiset hash of their cache contents.
+Comparing the two digests is a single byte-string comparison and tells you
+instantly whether the replicas are in sync — without iterating either cache.
+
+```python
+import secrets
+from pymsh import MSetAddHash
+
+shared_key = secrets.token_bytes(32)        # both replicas share this
+shared_nonce = b"\x00" * 16                 # and this
+
+class FingerprintedCache:
+    def __init__(self):
+        self._h = MSetAddHash(shared_key, nonce=shared_nonce)
+        self._items = {}
+
+    def put(self, key: bytes, value: bytes) -> None:
+        self._items[key] = value
+        self._h.update(key, 1)              # O(1) per write
+
+    def fingerprint(self) -> bytes:
+        return self._h.digest()[0]          # 64 bytes
+
+# Anywhere in the cluster:
+if replica_a.fingerprint() == replica_b.fingerprint():
+    ...   # caches agree on the multiset of keys; no reconciliation needed
+```
+
+### 3. Stream a commitment over an event log
+
+A service ingests millions of events and wants a single small commitment to
+the *exact* set of events it has seen, with no buffering. An auditor can
+later replay a claimed log — in any order — to verify it matches.
+
+```python
+from pymsh import MSetVAddHash
+
+hasher = MSetVAddHash(n_bits=512)
+for event in event_stream():               # streaming; constant memory
+    hasher.update(event.id, 1)
+
+commitment = hasher.digest()               # publish/sign this
+
+# Auditor side, later:
+audit = MSetVAddHash(n_bits=512)
+for event in claimed_log:                  # order doesn't matter
+    audit.update(event.id, 1)
+assert audit.digest() == commitment
+```
+
 ## References
 
 1. D. Clarke, S. Devadas, M. van Dijk, B. Gassend, and G.E. Suh. [“Incremental Multiset Hash Functions and Their Application to Memory Integrity Checking,”](https://www.iacr.org/cryptodb/data/paper.php?pubkey=151) ASIACRYPT 2003.
