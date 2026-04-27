@@ -182,23 +182,32 @@ Anywhere you have a *collection of things where order doesn't matter* and you
 want a single small fingerprint of it. A normal hash like SHA-256 changes the
 moment you reorder the input; a multiset hash doesn't.
 
-### 1. Compare two shopping carts
+### 1. Verify two SQL queries return the same rows
 
-Two carts contain the same items in different orders. A regular hash sees
-them as different; a multiset hash sees them as the same.
+A `SELECT` without an `ORDER BY` makes no promise about the row order, and
+result sets can contain duplicates — so a Python `set()` would silently lose
+information. Hash the multiset of rows on each side and compare two small
+fingerprints instead.
 
 ```python
-from pymsh import MSetMuHash
+import json
+from pymsh import MSetMuHash, list_to_multiset
 
-cart_a = {b"apple": 3, b"bread": 1, b"milk": 2}
-cart_b = {b"milk": 2, b"bread": 1, b"apple": 3}   # same items, listed differently
+result_a = [(1, "alice"), (2, "bob"), (1, "alice"), (3, "carol")]
+result_b = [(3, "carol"), (1, "alice"), (2, "bob"), (1, "alice")]   # same rows, reshuffled
 
-h = MSetMuHash()
-assert h.hash(cart_a) == h.hash(cart_b)           # same fingerprint
+def fingerprint(rows):
+    serialised = [json.dumps(row).encode() for row in rows]
+    return MSetMuHash().hash(list_to_multiset(serialised))
+
+assert fingerprint(result_a) == fingerprint(result_b)
 ```
 
-If a customer adds an extra apple, the fingerprint changes — multiplicities
-matter, not order.
+Bread-and-butter use cases: checking that a refactored query returns the
+same rows as the original, or sanity-checking that two database replicas
+agree on a table's contents without scanning row-by-row. Drop one of the
+duplicate `(1, "alice")` rows and the fingerprint changes — multiplicities
+are preserved, unlike with a plain `set()`.
 
 ### 2. "Do these two documents use the same words?"
 

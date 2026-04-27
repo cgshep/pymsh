@@ -11,10 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CITATION.cff` so academic users can cite the library directly from GitHub's
   "Cite this repository" button, alongside the underlying ASIACRYPT 2003 paper.
 - A "When Would I Use This?" section in the README with three short,
-  beginner-friendly examples (comparing shopping carts, bag-of-words
-  document fingerprinting, running fingerprint over streaming data) that
-  motivate *why* a multiset hash is the right tool before any cryptography
-  vocabulary appears.
+  programmer-oriented examples (verifying two SQL queries return the
+  same rows, bag-of-words document fingerprinting, running fingerprint
+  over streaming data) that motivate *why* a multiset hash is the right
+  tool before any cryptography vocabulary appears.
 - `__all__` to the public module so `from pymsh import *` exposes only the
   documented API.
 - Validation of `m` in `MSetAddHash` (must be a positive power of two,
